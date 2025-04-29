@@ -32,7 +32,8 @@ CREATE TABLE IF NOT EXISTS USUARIOS (
     id_usuario INT AUTO_INCREMENT PRIMARY KEY,
     correo VARCHAR(255) NOT NULL,
     contrasenia VARCHAR(255) NOT NULL, -- Contraseña cifrada
-    estado BOOLEAN
+    estado BOOLEAN,
+    rol INT
 );
 
 -- Crear tabla de administradores
@@ -55,6 +56,7 @@ CREATE TABLE IF NOT EXISTS ESTUDIANTES (
     FOREIGN KEY (id_usuario) REFERENCES USUARIOS(id_usuario)
 );
 
+
 -- Crear tabla de sedes
 CREATE TABLE IF NOT EXISTS SEDES (
     id_sede INT AUTO_INCREMENT PRIMARY KEY,
@@ -62,7 +64,7 @@ CREATE TABLE IF NOT EXISTS SEDES (
     distrito VARCHAR(255) NOT NULL
 );
 
--- Crear tabla de profesores (ahora debería funcionar)
+-- Crear tabla de profesores
 CREATE TABLE IF NOT EXISTS PROFESORES (
     id_profesor INT AUTO_INCREMENT PRIMARY KEY,
     nombre VARCHAR(255) NOT NULL,
@@ -82,9 +84,7 @@ CREATE TABLE IF NOT EXISTS CICLOS (
     modalidad VARCHAR(255) NOT NULL,
     costo INT NOT NULL,
     fecha_inicio DATE NOT NULL,
-    fecha_fin DATE NOT NULL,
-    id_sede INT, -- Clave foránea
-    FOREIGN KEY (id_sede) REFERENCES SEDES(id_sede)
+    fecha_fin DATE NOT NULL
 );
 
 -- Crear tabla de cursos
@@ -92,9 +92,7 @@ CREATE TABLE IF NOT EXISTS CURSOS (
     id_curso INT AUTO_INCREMENT PRIMARY KEY,
     nombre_curso VARCHAR(255) NOT NULL,
     id_profesor INT, -- Clave foránea
-    id_sede INT, -- Clave foránea
-    FOREIGN KEY (id_profesor) REFERENCES PROFESORES(id_profesor),
-    FOREIGN KEY (id_sede) REFERENCES SEDES(id_sede)
+    FOREIGN KEY (id_profesor) REFERENCES PROFESORES(id_profesor)
 );
 
 -- Crear tabla de asistencias
@@ -122,5 +120,14 @@ CREATE TABLE IF NOT EXISTS PAGOS (
     monto INT NOT NULL,
     fecha_pago DATE NOT NULL,
     FOREIGN KEY (id_inscripcion) REFERENCES INSCRIPCIONES(id_inscripcion)
+);
+
+-- Crear tabla de sede_ciclo (relaciona sedes con ciclos)
+CREATE TABLE IF NOT EXISTS SEDE_CICLO (
+    id_sede INT, -- Clave foránea
+    id_ciclo INT, -- Clave foránea
+    PRIMARY KEY (id_sede, id_ciclo),
+    FOREIGN KEY (id_sede) REFERENCES SEDES(id_sede),
+    FOREIGN KEY (id_ciclo) REFERENCES CICLOS(id_ciclo)
 );
 
