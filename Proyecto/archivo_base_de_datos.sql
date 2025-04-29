@@ -1,3 +1,32 @@
+-- recuerda PRIMERO CREAR EL ESQUEMA CON EL NOMBRE "sistema_mega_academico"
+
+
+
+
+
+-- recuerda PRIMERO CREAR EL ESQUEMA CON EL NOMBRE "sistema_mega_academico"
+
+
+
+
+
+
+-- recuerda PRIMERO CREAR EL ESQUEMA CON EL NOMBRE "sistema_mega_academico"
+
+
+
+
+
+
+
+-- recuerda PRIMERO CREAR EL ESQUEMA CON EL NOMBRE "sistema_mega_academico"
+
+
+
+
+
+-- recuerda PRIMERO CREAR EL ESQUEMA CON EL NOMBRE "sistema_mega_academico"
+
 -- Crear tabla de usuarios
 CREATE TABLE IF NOT EXISTS USUARIOS (
     id_usuario INT AUTO_INCREMENT PRIMARY KEY,
