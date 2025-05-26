@@ -99,7 +99,7 @@ CREATE TABLE IF NOT EXISTS `academia_mega`.`asistencias` (
     FOREIGN KEY (`id_profesor`)
     REFERENCES `academia_mega`.`profesores` (`id_profesor`))
 ENGINE = InnoDB
-AUTO_INCREMENT = 4
+AUTO_INCREMENT = 1
 DEFAULT CHARACTER SET = utf8mb3;
 
 
@@ -117,7 +117,7 @@ CREATE TABLE IF NOT EXISTS `academia_mega`.`ciclos_programados` (
   constraint chk_fecha check (fecha_inicio < fecha_fin),
   PRIMARY KEY (`id_ciclo`))
 ENGINE = InnoDB
-AUTO_INCREMENT = 3
+AUTO_INCREMENT = 1
 DEFAULT CHARACTER SET = utf8mb3;
 
 
@@ -129,7 +129,7 @@ CREATE TABLE IF NOT EXISTS `academia_mega`.`cursos` (
   `nombre_curso` VARCHAR(100) NOT NULL,
   PRIMARY KEY (`id_curso`))
 ENGINE = InnoDB
-AUTO_INCREMENT = 19
+AUTO_INCREMENT = 1
 DEFAULT CHARACTER SET = utf8mb3;
 
 
@@ -152,7 +152,7 @@ CREATE TABLE IF NOT EXISTS `academia_mega`.`ciclos_cursos` (
     FOREIGN KEY (`id_curso`)
     REFERENCES `academia_mega`.`cursos` (`id_curso`))
 ENGINE = InnoDB
-AUTO_INCREMENT = 4
+AUTO_INCREMENT = 1
 DEFAULT CHARACTER SET = utf8mb3;
 
 
@@ -164,7 +164,7 @@ CREATE TABLE IF NOT EXISTS `academia_mega`.`especialidades` (
   `nombre_especialidad` VARCHAR(45) NOT NULL,
   PRIMARY KEY (`id_especialidad`))
 ENGINE = InnoDB
-AUTO_INCREMENT = 19
+AUTO_INCREMENT = 1
 DEFAULT CHARACTER SET = utf8mb3;
 
 
@@ -204,7 +204,7 @@ CREATE TABLE IF NOT EXISTS `academia_mega`.`examenes` (
     FOREIGN KEY (`id_estudiante`)
     REFERENCES `academia_mega`.`estudiantes` (`id_estudiante`))
 ENGINE = InnoDB
-AUTO_INCREMENT = 4
+AUTO_INCREMENT = 1
 DEFAULT CHARACTER SET = utf8mb3;
 
 
@@ -226,7 +226,7 @@ CREATE TABLE IF NOT EXISTS `academia_mega`.`grupos_por_ciclo` (
     FOREIGN KEY (`id_profesor`)
     REFERENCES `academia_mega`.`profesores` (`id_profesor`))
 ENGINE = InnoDB
-AUTO_INCREMENT = 4
+AUTO_INCREMENT = 1
 DEFAULT CHARACTER SET = utf8mb3;
 
 
@@ -248,7 +248,7 @@ CREATE TABLE IF NOT EXISTS `academia_mega`.`inscripciones` (
     FOREIGN KEY (`id_estudiante`)
     REFERENCES `academia_mega`.`estudiantes` (`id_estudiante`))
 ENGINE = InnoDB
-AUTO_INCREMENT = 8
+AUTO_INCREMENT = 1
 DEFAULT CHARACTER SET = utf8mb3;
 
 
@@ -296,7 +296,7 @@ CREATE TABLE IF NOT EXISTS `academia_mega`.`sedes` (
   `distrito` VARCHAR(45) NOT NULL,
   PRIMARY KEY (`id_sede`))
 ENGINE = InnoDB
-AUTO_INCREMENT = 4
+AUTO_INCREMENT = 1
 DEFAULT CHARACTER SET = utf8mb3;
 
 
