@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS `academia_mega`.`usuarios` (
   PRIMARY KEY (`id_usuario`),
   UNIQUE INDEX `correo_UNIQUE` (`correo` ASC) VISIBLE)
 ENGINE = InnoDB
-AUTO_INCREMENT = 13
+AUTO_INCREMENT = 1
 DEFAULT CHARACTER SET = utf8mb3;
 
 
