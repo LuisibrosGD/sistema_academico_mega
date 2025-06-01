@@ -1,0 +1,1 @@
+los actores tienen nacionalidad
