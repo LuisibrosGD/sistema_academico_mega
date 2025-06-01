@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS `academia_mega`.`usuarios` (
   `estado` TINYINT NOT NULL COMMENT '\"False\" para cuando la cuenta esta inactiva\\\\\\\\n\"True\" cuando la cuenta esta activa',
   `rol` ENUM('estudiante', 'administrador', 'profesor') NOT NULL,
   PRIMARY KEY (`id_usuario`),
+  CONSTRAINT chk_longitud_contrasenia CHECK (LENGTH(contrasenia) >= 8),
   UNIQUE INDEX `correo_UNIQUE` (`correo` ASC) VISIBLE)
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8mb3;
@@ -109,6 +110,8 @@ CREATE TABLE IF NOT EXISTS `academia_mega`.`ciclos_programados` (
   `costo` DECIMAL(10,2) NOT NULL,
   `fecha_inicio` DATE NOT NULL,
   `fecha_fin` DATE NOT NULL,
+  CHECK (costo > 0),
+  CONSTRAINT fechainicio_check CHECK (fecha_inicio < fecha_fin),
   PRIMARY KEY (`id_ciclo`))
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8mb3;
@@ -191,6 +194,7 @@ CREATE TABLE IF NOT EXISTS `academia_mega`.`examenes` (
   `id_estudiante` INT NOT NULL,
   PRIMARY KEY (`id_examen`),
   INDEX `fk_EXAMENES_ESTUDIANTES1_idx` (`id_estudiante` ASC) VISIBLE,
+  CONSTRAINT puntaje_check CHECK (puntaje >= -112.5),
   CONSTRAINT `fk_EXAMENES_ESTUDIANTES1`
     FOREIGN KEY (`id_estudiante`)
     REFERENCES `academia_mega`.`estudiantes` (`id_estudiante`))
@@ -278,6 +282,7 @@ CREATE TABLE IF NOT EXISTS `academia_mega`.`pagos` (
   `fecha_pago` DATETIME NOT NULL,
   PRIMARY KEY (`id_inscripcion`),
   INDEX `fk_PAGOS_INSCRIPCIONES1_idx` (`id_inscripcion` ASC) VISIBLE,
+  CONSTRAINT monto_check CHECK (monto > 0),
   CONSTRAINT `fk_PAGOS_INSCRIPCIONES1`
     FOREIGN KEY (`id_inscripcion`)
     REFERENCES `academia_mega`.`inscripciones` (`id_inscripcion`))
