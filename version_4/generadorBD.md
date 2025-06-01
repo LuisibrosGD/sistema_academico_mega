@@ -36,7 +36,8 @@ CREATE TABLE IF NOT EXISTS `academia_mega`.`usuarios` (
   `estado` TINYINT NOT NULL COMMENT '\"False\" para cuando la cuenta esta inactiva\\\\n\"True\" cuando la cuenta esta activa',
   `rol` ENUM('estudiante', 'administrador', 'profesor') NOT NULL,
   PRIMARY KEY (`id_usuario`),
-  UNIQUE INDEX `correo_UNIQUE` (`correo` ASC) VISIBLE)
+  UNIQUE INDEX `correo_UNIQUE` (`correo` ASC) VISIBLE),
+  CONSTRAINT chk_longitud_contrasenia CHECK (CHAR_LENGTH(`contrasenia`) >= 8)
 ENGINE = InnoDB
 AUTO_INCREMENT = 1
 DEFAULT CHARACTER SET = utf8mb3;
@@ -197,7 +198,7 @@ CREATE TABLE IF NOT EXISTS `academia_mega`.`examenes` (
   `puntaje` DECIMAL(10,2) NOT NULL,
   `fecha_realizacion` DATE NOT NULL,
   `id_estudiante` INT NOT NULL,
-  constraint chk_puntaje check (puntaje>=0),
+  constraint chk_puntaje check (puntaje>=-112.5),
   PRIMARY KEY (`id_examen`),
   INDEX `fk_EXAMENES_ESTUDIANTES1_idx` (`id_estudiante` ASC) VISIBLE,
   CONSTRAINT `fk_EXAMENES_ESTUDIANTES1`
