@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS `academia_mega`.`usuarios` (
   `contrasenia` VARCHAR(45) NOT NULL,
   `fecha_creacion` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `estado` TINYINT NOT NULL COMMENT '\"False\" para cuando la cuenta esta inactiva\\\\\\\\n\"True\" cuando la cuenta esta activa',
-  `rol` ENUM('estudiante', 'administrador', 'profesor') NOT NULL,
+  `rol` ENUM('estudiante', 'administrador', 'profesor','colaborador') NOT NULL,
   PRIMARY KEY (`id_usuario`),
   UNIQUE INDEX `correo_UNIQUE` (`correo` ASC) VISIBLE)
 ENGINE = InnoDB
