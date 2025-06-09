@@ -297,7 +297,7 @@ class Login_admin:
                     nuevo_correo = input(f"Ingrese el nuevo correo (anterior {datos_colab[0][5]}): ")
                     nuevo_contrasena = input(f"Ingrese nueva contrasenia (anterior {datos_colab[0][6]}): ")
 
-                    editar_colaborador(id_profe, nuevo_nombre, nuevo_ap_pat, nuevo_ap_mat, nuevo_tip_dcmto,
+                    editar_colaborador(id_colab, nuevo_nombre, nuevo_ap_pat, nuevo_ap_mat, nuevo_tip_dcmto,
                                     nuevo_nro_dcmto, nuevo_correo, nuevo_contrasena)
             elif opcion == 3:
                 ver_colaboradores()
@@ -313,12 +313,71 @@ class Login_admin:
 
     def gestionar_estudiantes(self):
 
-            while(True):
-                print("1. Crear Estudiante") # El estudiante crea su cuenta y necesita de la autorizacion de un administrador (cuenta del admin)
-                print("2. Editar Estudiante")
-                print("3. Ver Estudiantes")
-                print("4. Desactivar o activar Estudiante")
-                print("0. Volver")
+        while(True):
+            print("1. Crear Estudiante") # El estudiante crea su cuenta y necesita de la autorizacion de un administrador (cuenta del admin)
+            print("2. Editar Estudiante")
+            print("3. Ver Estudiantes")
+            print("4. Desactivar o activar Estudiante")
+            print("0. Volver")
+
+            opcion = int(input("Elija opcion: "))
+
+            if opcion == 1:
+                print("CREE SU USUARIO -------------------------")
+                nombre_usuario = input("Ingrese su nombre de usuario: ")
+                correo = input("Ingrese su nombre de correo: ")
+                contrasena = input("Ingrese su contrasena (>8 caracteres): ")
+
+                print("INGRESE SUS DATOS --------------------------")
+                nombre = input("Ingrese su nombre: ")
+                ap_paterno = input("Ingrese su apellido paterno: ")
+                ap_materno = input("Ingrese su apellido materno: ")
+                tipo_dcmto = input("Tipo de documento (dni/carnet): ")
+                nro_dcmto = input("Nro de documento: ")
+                area_academica = input("Area academica (a/b/c/d/e): ")
+
+                crear_estudiante(nombre_usuario, correo, contrasena, nombre, ap_paterno, ap_materno, tipo_dcmto,
+                                  nro_dcmto, area_academica)
+
+            elif opcion == 2:
+                ver_colaboradores()
+                id_colab = int(input('Seleccione ID del estudiante:           (0 para cancelar)'))
+
+                if id_colab == 0:
+                    print("Operacion cancelada")
+                    continue
+                else:
+
+                    sql = """
+                                                        SELECT p.nombre, p.ap_paterno, p.ap_materno, p.tipo_documento, p.nro_documento,
+                                                            u.nombre_usuario, u.correo, u.contrasenia
+                                                        FROM estudiantes p
+                                                        JOIN usuarios u
+                                                        ON p.id_usuario = u.id_usuario
+                                                        WHERE id_estudiante = %s
+                                                    """
+                    tupla_colab = (id_colab,)
+                    datos_colab = ejecutar_select(sql, tupla_colab)
+                    print(datos_colab)
+                    nuevo_nombre = input(f"Ingrese su nombre (Nombre anterior {datos_colab[0][0]}): ")
+                    nuevo_ap_pat = input(f"Ingrese su apellido paterno (Ap paterno anterior {datos_colab[0][1]}): ")
+                    nuevo_ap_mat = input(f"Ingrese su apellido materno (Ap materno anterior {datos_colab[0][2]}): ")
+                    nuevo_tip_dcmto = input(
+                        f"Ingrese el nuevo tipo de documento (dni/carnet) (anterior {datos_colab[0][3]}): ")
+                    nuevo_nro_dcmto = input(f"Ingrese el nuevo # de documento (anterior {datos_colab[0][4]}): ")
+                    nuevo_correo = input(f"Ingrese el nuevo correo (anterior {datos_colab[0][5]}): ")
+                    nuevo_contrasena = input(f"Ingrese nueva contrasenia (anterior {datos_colab[0][6]}): ")
+                    nueva_area = input(f"Ingrese nueva area (anterior {datos_colab[0][7]}): ")
+                    editar_colaborador(id_colab, nuevo_nombre, nuevo_ap_pat, nuevo_ap_mat, nuevo_tip_dcmto,
+                                       nuevo_nro_dcmto,nueva_area ,nuevo_correo, nuevo_contrasena)
+
+            elif opcion == 3:
+                ver_estudiantes()
+            elif opcion == 4:
+                pass
+            elif opcion == 5:
+                ver_examenes()
+
 
     # -------------------------------------------------------------------------
 

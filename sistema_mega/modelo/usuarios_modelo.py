@@ -90,7 +90,8 @@ def ver_profesores():
             contador = contador + 1
         print("-----------------------------------")
 def activar_desactivar_cuenta_profesor(id_profesor, opcion_cuenta):
-
+    id_usuario = ejecutar_select("Select id_usuario from profesores where id_profesor = %s", (id_profe,))
+    id_usuario = id_usuario[0][0]
     global query
     if opcion_cuenta == 0:
         query = "UPDATE usuarios SET estado = 0 WHERE id_usuario = %s"
@@ -99,7 +100,7 @@ def activar_desactivar_cuenta_profesor(id_profesor, opcion_cuenta):
     else:
         print("Opcion no existe")
 
-    datos = (id_profesor,)
+    datos = (id_usuario,)
     ejecutar_modificacion(query, datos)
 
 def agregar_especialidad_profesor(id_profe, id_usuario):
@@ -283,3 +284,104 @@ def ver_colaboradores():
 
 
 # Logica para los cruds de estudiantes ----------------------------------------------------------------------------------
+
+def crear_estudiante(
+    nombre_usuario,
+    correo,
+    contrasena,
+    nombre,
+    ap_paterno,
+    ap_materno,
+    tipo_documento,
+    nro_documento,
+    area_academica,
+    estado = 1
+):
+    rol = "estudiante"
+    try:
+        # 1) Insertar en usuarios
+        sql_user = """
+        INSERT INTO usuarios 
+          (nombre_usuario, correo, contrasenia, estado,rol)
+        VALUES (%s, %s, %s, %s,%s)
+        """
+
+        datos_user = (
+            nombre_usuario,
+            correo,
+            contrasena,
+            estado,
+            rol
+        )
+
+        # Consulta agregada a la BD
+        ejecutar_modificacion(sql_user, datos_user)
+
+        # Obtener el id generado para usuarios
+        id_usuario = ejecutar_select("SELECT id_usuario FROM usuarios WHERE nombre_usuario = %s AND correo = %s AND contrasenia = %s AND rol = %s", (nombre_usuario,correo,contrasena, "administrador"))
+
+        if id_usuario and len(id_usuario) > 0:
+            id_usuario = id_usuario[0][0]  # ✅ AQUÍ: extraes el valor int
+        else:
+            print("❌ No se encontró el usuario recién insertado.")
+            return
+
+        # 2) Insertar en estudiantes
+        sql_admin = """
+        INSERT INTO estudiantes
+          (nombre, ap_paterno, ap_materno, tipo_documento, nro_documento, area_academica, id_usuario)
+        VALUES (%s, %s, %s, %s, %s, %s)
+        """
+        datos_estud = (
+            nombre,
+            ap_paterno,
+            ap_materno,
+            tipo_documento,
+            nro_documento,
+            area_academica
+            id_usuario
+        )
+        ejecutar_modificacion(sql_admin, datos_estud)
+
+    except Exception as e:
+        print(f"❌ Error al crear estudiante: {e}")
+
+def editar_estudiante(id, nombre, ap_paterno, ap_materno, tipo_documento, nro_documento, area_academica, nombre_usuario, correo, contrasenia):
+    sql = """UPDATE usuarios u SET u.nombre_usuario = %s, u.correo = %s, u.contrasenia = %s 
+    JOIN estudiantes e
+    ON u.id_usuario = e.id_usuario 
+    WHERE e.id_estudiante = %s"""
+    datos_estud = (nombre_usuario,contrasenia, correo, id)
+    ejecutar_modificacion(sql, datos_estud)
+
+    sql = """UPDATE estudiantes SET nombre = %s, ap_paterno = %s, ap_materno = %s, tipo_documento = %s, nro_documento = %s, area_academica = %s WHERE id_estudiante = %s"""
+    datos_estud_1 = (nombre,ap_paterno,ap_materno,tipo_documento,nro_documento,area_academica, id)
+    ejecutar_modificacion(sql, datos_estud_1)
+
+def activar_desactivar_cuenta_profesor(id_estud, opcion_cuenta):
+
+    id_usuario = ejecutar_select("Select id_usuario from estudiantes where id_estudiante = %s", (id_estud,))
+    id_usuario = id_usuario[0][0]
+    global query
+    if opcion_cuenta == 0:
+        query = "UPDATE usuarios SET estado = 0 WHERE id_usuario = %s"
+    elif opcion_cuenta == 1:
+        query = "UPDATE usuarios SET estado = 1 WHERE id_usuario = %s"
+    else:
+        print("Opcion no existe")
+
+    datos = (id_usuario,)
+    ejecutar_modificacion(query, datos)
+
+def ver_estudiantes():
+    query = "SELECT * FROM estudiantes"
+    resultados = ejecutar_select(query)
+    for resultado in resultados:
+        print(f"ID: {resultado[0]}, Nombre: {resultado[1]}, Apellido Pat.: {resultado[2]}, Apellido Mat.: {resultado[3]},Tipo Documento: {resultado[4]}, Numero Documento: {resultado[5]},ID usuario: {resultado[6]}")
+
+def ver_examenes():
+    query = "SELECT ex.id_examen, ex.puntaje, ex.fecha_realizacion, CONCAT_WS(' ', es.nombre,es.ap_paterno, es.ap_materno) FROM examenes ex JOIN estudiantes es ON ex.id_estudiante = es.id_estudiante"
+
+    resultados = ejecutar_select(query)
+    for resultado in resultados:
+        print(f"ID: {resultado[0]}, Puntaje: {resultado[1]}, fecha: {resultado[2]}, alumno: {resultado[3]}")
