@@ -1,9 +1,5 @@
-from database.conexion import *
-from vista import login
-
-
+from sistema_mega.vista.login import Login
 
 if __name__ == "__main__":
-    query = "SELECT * FROM usuarios"
-    respuesta = ejecutar_select(query)
-    print(respuesta)
+    objetoLogin = Login()
+    objetoLogin.consola_login()
