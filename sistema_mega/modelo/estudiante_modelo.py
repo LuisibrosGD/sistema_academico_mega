@@ -1,5 +1,4 @@
-
-
+from sistema_mega.database.conexion import ejecutar_select
 
 def ver_cicloprogramado():
     sql_select = ("SELECT nombre_ciclo, modalidad, costo, fecha_inicio, fecha_fin "
