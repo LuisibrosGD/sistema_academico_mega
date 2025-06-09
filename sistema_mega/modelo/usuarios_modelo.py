@@ -64,7 +64,10 @@ def crear_profesor(
         print(f"❌ Error al crear profesor: {e}")
 
 def editar_profesor(id_profesor, nombre, ap_paterno, ap_materno, tipo_documento, nro_documento, nombre_usuario, correo, contrasenia):
-    sql = """UPDATE usuarios SET nombre_usuario = %s, correo = %s, contrasenia = %s WHERE id_usuario = %s"""
+    sql = """UPDATE usuarios u SET u.nombre_usuario = %s, u.correo = %s, u.contrasenia = %s 
+        JOIN profesores p
+        ON u.id_usuario = p.id_usuario 
+    WHERE p.id_profesor = %s"""
     datos_profe = (nombre_usuario,contrasenia, correo, id_profesor)
     ejecutar_modificacion(sql, datos_profe)
 
@@ -181,12 +184,15 @@ def crear_administrador(
         print(f"❌ Error al crear administrador: {e}")
 
 def editar_administrador(id_admin, nombre, ap_paterno, ap_materno, tipo_documento, nro_documento, nombre_usuario, correo, contrasenia):
-    sql = """UPDATE usuarios SET nombre_usuario = %s, correo = %s, contrasenia = %s WHERE id_usuario = %s"""
-    datos_admin = (nombre_usuario,contrasenia, correo, id_profesor)
+    sql = """UPDATE usuarios u SET u.nombre_usuario = %s, u.correo = %s, u.contrasenia = %s 
+    JOIN administradores a
+    ON u.id_usuario = a.id_usuario 
+    WHERE a.id_administrador = %s"""
+    datos_admin = (nombre_usuario,contrasenia, correo, id_admin)
     ejecutar_modificacion(sql, datos_admin)
 
-    sql = """UPDATE administradores SET nombre = %s, ap_paterno = %s, ap_materno = %s, tipo_documento = %s, nro_documento = %s WHERE id_profe = %s"""
-    datos_admin_1 = (nombre,ap_paterno,ap_materno,tipo_documento,nro_documento, id_profesor)
+    sql = """UPDATE administradores SET nombre = %s, ap_paterno = %s, ap_materno = %s, tipo_documento = %s, nro_documento = %s WHERE id_profesor = %s"""
+    datos_admin_1 = (nombre,ap_paterno,ap_materno,tipo_documento,nro_documento, id_admin)
     ejecutar_modificacion(sql, datos_admin_1)
 
 def ver_administradores():
@@ -255,5 +261,25 @@ def crear_colaborador(
 
     except Exception as e:
         print(f"❌ Error al crear colaborador: {e}")
+
+def editar_colaborador(id_colab, nombre, ap_paterno, ap_materno, tipo_documento, nro_documento, nombre_usuario, correo, contrasenia):
+    sql = """UPDATE usuarios u SET u.nombre_usuario = %s, u.correo = %s, u.contrasenia = %s 
+        JOIN colaboradores c
+        ON u.id_usuario = c.id_usuario 
+        WHERE c.id_colaborador = %s"""
+    datos_colab = (nombre_usuario,contrasenia, correo, id_colab)
+    ejecutar_modificacion(sql, datos_colab)
+
+    sql = """UPDATE colaboradores SET nombre = %s, ap_paterno = %s, ap_materno = %s, tipo_documento = %s, nro_documento = %s WHERE id_colaborador = %s"""
+    datos_admin_1 = (nombre,ap_paterno,ap_materno,tipo_documento,nro_documento, id_colab)
+    ejecutar_modificacion(sql, datos_admin_1)
+
+def ver_colaboradores():
+    query = "SELECT * FROM colaboradores"
+    resultados = ejecutar_select(query)
+    for resultado in resultados:
+        print(
+            f"ID: {resultado[0]}, Nombre: {resultado[1]}, Apellido Pat.: {resultado[2]}, Apellido Mat.: {resultado[3]},Tipo Documento: {resultado[4]}, Numero Documento: {resultado[5]},ID usuario: {resultado[6]}")
+
 
 # Logica para los cruds de estudiantes ----------------------------------------------------------------------------------

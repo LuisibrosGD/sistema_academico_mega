@@ -9,12 +9,12 @@ class Login_admin:
     def consola_menadmin(self):
         while(True):
             print("Menu administrador")
-            print("1.Gestionar usuarios")
-            print("2.Gestionar ciclos programados")
-            print("3.Gestionar cursos y especialidades")
-            print("4.Asignar profesores a ciclos")
-            print("5.Generar reportes")
-            print("6.Gestionar sedes")
+            print("1. Gestionar usuarios")
+            print("2. Gestionar ciclos programados")
+            print("3. Gestionar cursos y especialidades")
+            print("4. Asignar profesores a ciclos")
+            print("5. Generar reportes")
+            print("6. Gestionar sedes")
             print("0. Salir")
 
             respuesta = int(input('Seleccione la respuesta que quiere: '))
@@ -89,11 +89,13 @@ class Login_admin:
                 self.gestionar_administradores()
             elif opcion == 2:
                 print("Menu Gestionar Colaboradores")
+                self.gestionar_colaboradores()
             elif opcion == 3:
                 print("Menu Gestionar Profesores")
                 self.gestionar_profesores()
             elif opcion == 4:
                 print("Menu Gestionar Estudiantes")
+                self.gestionar_estudiantes()
             elif opcion == 0:
                 print("Volviendo a menu administrador")
                 break
@@ -245,11 +247,67 @@ class Login_admin:
     def gestionar_colaboradores(self):
         while(True):
 
-            print("1. Crear administrador")
-            print("2. Editar administrador")
-            print("3. Ver administradores")
+            print("1. Crear colaborador")
+            print("2. Editar colaborador")
+            print("3. Ver colaboradores")
             print("4. Desactivar o activar colaborador")
             print("0. Volver")
+
+            opcion = int(input('Seleccione la opcion que quiere: '))
+            if opcion == 1:
+                print("CREE SU USUARIO -------------------------")
+                nombre_usuario = input("Ingrese su nombre de usuario: ")
+                correo = input("Ingrese su nombre de correo: ")
+                contrasena = input("Ingrese su contrasena (>8 caracteres): ")
+
+                print("INGRESE SUS DATOS --------------------------")
+                nombre = input("Ingrese su nombre: ")
+                ap_paterno = input("Ingrese su apellido paterno: ")
+                ap_materno = input("Ingrese su apellido materno: ")
+                tipo_dcmto = input("Tipo de documento (dni/carnet): ")
+                nro_dcmto = input("Nro de documento: ")
+
+                crear_colaborador(nombre_usuario, correo, contrasena, nombre,ap_paterno,ap_materno,tipo_dcmto,nro_dcmto)
+            elif opcion == 2:
+                ver_colaboradores()
+                id_colab = int(input('Seleccione ID del colaborador:           (0 para cancelar)'))
+
+                if id_colab == 0:
+                    print("Operacion cancelada")
+                    continue
+                else:
+
+                    sql = """
+                                        SELECT p.nombre, p.ap_paterno, p.ap_materno, p.tipo_documento, p.nro_documento,
+                                            u.nombre_usuario, u.correo, u.contrasenia
+                                        FROM colaboradores p
+                                        JOIN usuarios u
+                                        ON p.id_usuario = u.id_usuario
+                                        WHERE id_colaborador = %s
+                                    """
+                    tupla_colab = (id_colab,)
+                    datos_colab = ejecutar_select(sql, tupla_colab)
+                    print(datos_colab)
+                    nuevo_nombre = input(f"Ingrese su nombre (Nombre anterior {datos_colab[0][0]}): ")
+                    nuevo_ap_pat = input(f"Ingrese su apellido paterno (Ap paterno anterior {datos_colab[0][1]}): ")
+                    nuevo_ap_mat = input(f"Ingrese su apellido materno (Ap materno anterior {datos_colab[0][2]}): ")
+                    nuevo_tip_dcmto = input(
+                        f"Ingrese el nuevo tipo de documento (dni/carnet) (anterior {datos_colab[0][3]}): ")
+                    nuevo_nro_dcmto = input(f"Ingrese el nuevo # de documento (anterior {datos_colab[0][4]}): ")
+                    nuevo_correo = input(f"Ingrese el nuevo correo (anterior {datos_colab[0][5]}): ")
+                    nuevo_contrasena = input(f"Ingrese nueva contrasenia (anterior {datos_colab[0][6]}): ")
+
+                    editar_colaborador(id_profe, nuevo_nombre, nuevo_ap_pat, nuevo_ap_mat, nuevo_tip_dcmto,
+                                    nuevo_nro_dcmto, nuevo_correo, nuevo_contrasena)
+            elif opcion == 3:
+                ver_colaboradores()
+
+            elif opcion == 0:
+                print("Volviendo al menu")
+                break
+            else:
+                print("Opcion incorrecta")
+
 
 
 
