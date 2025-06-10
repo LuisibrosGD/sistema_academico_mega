@@ -135,13 +135,13 @@ class Login_admin:
                 else:
 
                     sql = """
-                                        SELECT p.nombre, p.ap_paterno, p.ap_materno, p.tipo_documento, p.nro_documento,
-                                            u.nombre_usuario, u.correo, u.contrasenia
-                                        FROM profesores p
-                                        JOIN usuarios u
-                                        ON p.id_usuario = u.id_usuario
-                                        WHERE id_profesor = %s
-                                    """
+                        SELECT p.nombre, p.ap_paterno, p.ap_materno, p.tipo_documento, p.nro_documento,
+                            u.nombre_usuario, u.correo, u.contrasenia
+                        FROM profesores p
+                        JOIN usuarios u
+                        ON p.id_usuario = u.id_usuario
+                        WHERE id_profesor = %s
+                    """
                     tupla_admin = (id_admin,)
                     datos_admin = ejecutar_select(sql, tupla_admin)
                     print(datos_admin)
@@ -314,7 +314,7 @@ class Login_admin:
     def gestionar_estudiantes(self):
 
         while(True):
-            print("1. Crear Estudiante") # El estudiante crea su cuenta y necesita de la autorizacion de un administrador (cuenta del admin)
+            print("1. Crear Estudiante")
             print("2. Editar Estudiante")
             print("3. Ver Estudiantes")
             print("4. Desactivar o activar Estudiante")
@@ -349,13 +349,13 @@ class Login_admin:
                 else:
 
                     sql = """
-                                                        SELECT p.nombre, p.ap_paterno, p.ap_materno, p.tipo_documento, p.nro_documento,
-                                                            u.nombre_usuario, u.correo, u.contrasenia
-                                                        FROM estudiantes p
-                                                        JOIN usuarios u
-                                                        ON p.id_usuario = u.id_usuario
-                                                        WHERE id_estudiante = %s
-                                                    """
+                        SELECT p.nombre, p.ap_paterno, p.ap_materno, p.tipo_documento, p.nro_documento,
+                            u.nombre_usuario, u.correo, u.contrasenia
+                        FROM estudiantes p
+                        JOIN usuarios u
+                        ON p.id_usuario = u.id_usuario
+                        WHERE id_estudiante = %s
+                    """
                     tupla_colab = (id_colab,)
                     datos_colab = ejecutar_select(sql, tupla_colab)
                     print(datos_colab)
@@ -373,10 +373,14 @@ class Login_admin:
 
             elif opcion == 3:
                 ver_estudiantes()
-            elif opcion == 4:
+            elif opcion == 4: # Desactivar cuenta estudiante
                 pass
             elif opcion == 5:
                 ver_examenes()
+            elif opcion == 0:
+                break
+            else:
+                print("Opcion incorrecta")
 
 
     # -------------------------------------------------------------------------

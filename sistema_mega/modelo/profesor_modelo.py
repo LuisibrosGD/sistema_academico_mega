@@ -5,13 +5,11 @@ def ver_grupos_asignados():
     SELECT 
         gpc.id_grupo,
         gpc.nombre_grupo,
-        CONCAT(p.nombre, ' ', p.ap_paterno, ' ', p.ap_materno) AS profesor,
         c.nombre_curso,
         cc.dia,
         cc.hora_inicio,
         cc.hora_fin
     FROM grupos_por_ciclo gpc
-    JOIN profesores p ON gpc.id_profesor = p.id_profesor
     JOIN ciclos_cursos cc ON gpc.id_cc = cc.id_cc
     JOIN cursos c ON cc.id_curso = c.id_curso
     ORDER BY gpc.id_grupo;

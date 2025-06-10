@@ -82,7 +82,7 @@ def ver_profesores():
     resultados = ejecutar_select(query)
     for resultado in resultados:
         print(f"ID: {resultado[0]}, Nombre: {resultado[1]}, Apellido Pat.: {resultado[2]}, Apellido Mat.: {resultado[3]},Tipo Documento: {resultado[4]}, Numero Documento: {resultado[5]},ID usuario: {resultado[6]}")
-        especialidades = mostrar_especialidades(resultado[0])
+        especialidades = obtener_especialidades(resultado[0])
         contador = 1
         print("Especialidades: ")
         for especialidad in especialidades:
@@ -90,17 +90,19 @@ def ver_profesores():
             contador = contador + 1
         print("-----------------------------------")
 def activar_desactivar_cuenta_profesor(id_profesor, opcion_cuenta):
-    id_usuario = ejecutar_select("Select id_usuario from profesores where id_profesor = %s", (id_profe,))
+    id_usuario = ejecutar_select("Select id_usuario from profesores where id_profesor = %s", (id_profesor,))
     id_usuario = id_usuario[0][0]
-    global query
+    print(f"id_usuario: {id_usuario} probando opcion")
     if opcion_cuenta == 0:
-        query = "UPDATE usuarios SET estado = 0 WHERE id_usuario = %s"
+        print("Desactivando cuenta")
     elif opcion_cuenta == 1:
-        query = "UPDATE usuarios SET estado = 1 WHERE id_usuario = %s"
+        print("activando cuenta")
     else:
         print("Opcion no existe")
+    query = "UPDATE usuarios SET estado = %s WHERE id_usuario = %s"
+    datos = (opcion_cuenta,id_usuario)
+    print(f"Ejecutando query con datos: {datos}")
 
-    datos = (id_usuario,)
     ejecutar_modificacion(query, datos)
 
 def agregar_especialidad_profesor(id_profe, id_usuario):
@@ -110,7 +112,7 @@ def agregar_especialidad_profesor(id_profe, id_usuario):
     datos_profe = (id_profe, id_usuario)
     ejecutar_modificacion(sql, datos_profe)
 
-def mostrar_especialidades(id_profe):
+def obtener_especialidades(id_profe): # obtener_especialidades de un profesor
     sql = """
         SELECT e.nombre_especialidad FROM especialidades e
         JOIN profesores_especialidades pe
@@ -245,7 +247,7 @@ def crear_colaborador(
             return
 
         # 2) Insertar en colaboradores
-        sql_profe = """
+        sql_colab = """
         INSERT INTO colaboradores
           (nombre, ap_paterno, ap_materno, tipo_documento, nro_documento, id_usuario)
         VALUES (%s, %s, %s, %s, %s, %s)
@@ -258,7 +260,7 @@ def crear_colaborador(
             nro_documento,
             id_usuario
         )
-        ejecutar_modificacion(sql_profe, datos_colab)
+        ejecutar_modificacion(sql_colab, datos_colab)
 
     except Exception as e:
         print(f"❌ Error al crear colaborador: {e}")
@@ -338,7 +340,7 @@ def crear_estudiante(
             ap_materno,
             tipo_documento,
             nro_documento,
-            area_academica
+            area_academica,
             id_usuario
         )
         ejecutar_modificacion(sql_admin, datos_estud)
@@ -358,26 +360,11 @@ def editar_estudiante(id, nombre, ap_paterno, ap_materno, tipo_documento, nro_do
     datos_estud_1 = (nombre,ap_paterno,ap_materno,tipo_documento,nro_documento,area_academica, id)
     ejecutar_modificacion(sql, datos_estud_1)
 
-def activar_desactivar_cuenta_profesor(id_estud, opcion_cuenta):
-
-    id_usuario = ejecutar_select("Select id_usuario from estudiantes where id_estudiante = %s", (id_estud,))
-    id_usuario = id_usuario[0][0]
-    global query
-    if opcion_cuenta == 0:
-        query = "UPDATE usuarios SET estado = 0 WHERE id_usuario = %s"
-    elif opcion_cuenta == 1:
-        query = "UPDATE usuarios SET estado = 1 WHERE id_usuario = %s"
-    else:
-        print("Opcion no existe")
-
-    datos = (id_usuario,)
-    ejecutar_modificacion(query, datos)
-
 def ver_estudiantes():
-    query = "SELECT * FROM estudiantes"
+    query = "SELECT * FROM vista_estudiantes;"
     resultados = ejecutar_select(query)
     for resultado in resultados:
-        print(f"ID: {resultado[0]}, Nombre: {resultado[1]}, Apellido Pat.: {resultado[2]}, Apellido Mat.: {resultado[3]},Tipo Documento: {resultado[4]}, Numero Documento: {resultado[5]},ID usuario: {resultado[6]}")
+        print(f"ID: {resultado[0]}, Nombre: {resultado[1]}, Apellido Pat.: {resultado[2]}, Apellido Mat.: {resultado[3]},Tipo Documento: {resultado[4]}, Numero Documento: {resultado[5]},Area academica: {resultado[6]},ID usuario: {resultado[7]}")
 
 def ver_examenes():
     query = "SELECT ex.id_examen, ex.puntaje, ex.fecha_realizacion, CONCAT_WS(' ', es.nombre,es.ap_paterno, es.ap_materno) FROM examenes ex JOIN estudiantes es ON ex.id_estudiante = es.id_estudiante"

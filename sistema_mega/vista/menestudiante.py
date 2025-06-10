@@ -7,7 +7,7 @@ class Login_Estudiante:
             print("1. Ver oferta de ciclos")
             print("2. Ver pagos realizados")
             print("3. Ver notas")
-            print("4. Salir")
+            print("0. Salir")
 
             opcion = int(input("Seleccione una opción: "))
             if opcion == 1:
