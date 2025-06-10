@@ -13,7 +13,7 @@ class Login_colab:
 
             if opcion == 1:
                 id_profesor = int(input("Ingrese el ID del profesor: "))
-                estado = input("Ingrese el estado (presente/tardanza/ausente): ")
+                estado = input("Ingrese el estado (presente/tarde/ausente): ")
                 registrar_asistencia(estado, id_profesor)
                 nombre_profesor = obtener_nombre_profesor(id_profesor)
                 fecha= obtener_fecha(id_profesor)

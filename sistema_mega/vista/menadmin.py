@@ -127,7 +127,7 @@ class Login_admin:
                 crear_administrador(nombre_usuario,correo,contrasena,nombre,ap_paterno,ap_materno,tipo_dcmto,nro_dcmto)
             elif opcion == 2:
                 ver_administradores()
-                id_admin = int(input('Seleccione ID del administrador:           (0 para cancelar)'))
+                id_admin = int(input('Seleccione ID del administrador:           (0 para cancelar): '))
 
                 if id_admin == 0:
                     print("Operacion cancelada")
@@ -137,10 +137,10 @@ class Login_admin:
                     sql = """
                         SELECT p.nombre, p.ap_paterno, p.ap_materno, p.tipo_documento, p.nro_documento,
                             u.nombre_usuario, u.correo, u.contrasenia
-                        FROM profesores p
+                        FROM administradores p
                         JOIN usuarios u
                         ON p.id_usuario = u.id_usuario
-                        WHERE id_profesor = %s
+                        WHERE id_administrador = %s
                     """
                     tupla_admin = (id_admin,)
                     datos_admin = ejecutar_select(sql, tupla_admin)
@@ -151,11 +151,12 @@ class Login_admin:
                     nuevo_tip_dcmto = input(
                         f"Ingrese el nuevo tipo de documento (dni/carnet) (anterior {datos_admin[0][3]}): ")
                     nuevo_nro_dcmto = input(f"Ingrese el nuevo # de documento (anterior {datos_admin[0][4]}): ")
-                    nuevo_correo = input(f"Ingrese el nuevo correo (anterior {datos_admin[0][5]}): ")
-                    nuevo_contrasena = input(f"Ingrese nueva contrasenia (anterior {datos_admin[0][6]}): ")
+                    nuevo_nombre_usuario = input(f"Ingrese su nuevo nombre de usuario (anterior {datos_admin[0][5]}): ")
+                    nuevo_correo = input(f"Ingrese el nuevo correo (anterior {datos_admin[0][6]}): ")
+                    nuevo_contrasena = input(f"Ingrese nueva contrasenia (anterior {datos_admin[0][7]}): ")
 
                     editar_administrador(id_admin, nuevo_nombre, nuevo_ap_pat, nuevo_ap_mat, nuevo_tip_dcmto,
-                                    nuevo_nro_dcmto, nuevo_correo, nuevo_contrasena)
+                                    nuevo_nro_dcmto, nuevo_nombre_usuario, nuevo_correo, nuevo_contrasena)
             elif opcion == 3:
                 ver_administradores()
             elif opcion == 0:

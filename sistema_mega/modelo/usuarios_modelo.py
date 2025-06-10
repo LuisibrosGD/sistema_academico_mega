@@ -90,17 +90,25 @@ def ver_profesores():
             contador = contador + 1
         print("-----------------------------------")
 def activar_desactivar_cuenta_profesor(id_profesor, opcion_cuenta):
-    id_usuario = ejecutar_select("Select id_usuario from profesores where id_profesor = %s", (id_profesor,))
-    id_usuario = id_usuario[0][0]
-    print(f"id_usuario: {id_usuario} probando opcion")
+    resultado = ejecutar_select("SELECT id_usuario FROM profesores WHERE id_profesor = %s", (id_profesor,))
+
+    if not resultado:
+        print(f"❌ Error: No se encontró ningún profesor con ID {id_profesor}")
+        return  # o puedes lanzar una excepción si prefieres
+
+    id_usuario = resultado[0][0]
+    print(f"id_usuario: {id_usuario} - probando opción")
+
     if opcion_cuenta == 0:
-        print("Desactivando cuenta")
+        print("🔒 Desactivando cuenta")
     elif opcion_cuenta == 1:
-        print("activando cuenta")
+        print("✅ Activando cuenta")
     else:
-        print("Opcion no existe")
+        print("⚠️ Opción no existe")
+        return
+
     query = "UPDATE usuarios SET estado = %s WHERE id_usuario = %s"
-    datos = (opcion_cuenta,id_usuario)
+    datos = (opcion_cuenta, id_usuario)
     print(f"Ejecutando query con datos: {datos}")
 
     ejecutar_modificacion(query, datos)
@@ -187,14 +195,18 @@ def crear_administrador(
         print(f"❌ Error al crear administrador: {e}")
 
 def editar_administrador(id_admin, nombre, ap_paterno, ap_materno, tipo_documento, nro_documento, nombre_usuario, correo, contrasenia):
-    sql = """UPDATE usuarios u SET u.nombre_usuario = %s, u.correo = %s, u.contrasenia = %s 
-    JOIN administradores a
-    ON u.id_usuario = a.id_usuario 
-    WHERE a.id_administrador = %s"""
+    sql = """
+        UPDATE usuarios
+        JOIN administradores a ON usuarios.id_usuario = a.id_usuario
+        SET usuarios.nombre_usuario = %s,
+        usuarios.correo = %s,
+        usuarios.contrasenia = %s
+        WHERE a.id_administrador = %s;
+    """
     datos_admin = (nombre_usuario,contrasenia, correo, id_admin)
     ejecutar_modificacion(sql, datos_admin)
 
-    sql = """UPDATE administradores SET nombre = %s, ap_paterno = %s, ap_materno = %s, tipo_documento = %s, nro_documento = %s WHERE id_profesor = %s"""
+    sql = """UPDATE administradores SET nombre = %s, ap_paterno = %s, ap_materno = %s, tipo_documento = %s, nro_documento = %s WHERE id_administrador = %s"""
     datos_admin_1 = (nombre,ap_paterno,ap_materno,tipo_documento,nro_documento, id_admin)
     ejecutar_modificacion(sql, datos_admin_1)
 
