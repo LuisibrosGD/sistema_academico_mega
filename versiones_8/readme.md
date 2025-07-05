@@ -1,1 +1,1 @@
-![Texto alternativo](nombre-de-la-imagen.extensión)
+![Modelo EER](modelo_eer.png)
