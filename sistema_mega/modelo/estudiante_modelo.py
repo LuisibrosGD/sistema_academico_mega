@@ -1,4 +1,4 @@
-from sistema_mega.database.conexion import ejecutar_select
+from sistema_mega.database.conexion import *
 
 def ver_cicloprogramado():
     return ejecutar_select("CALL ver_ciclos_activos()")
