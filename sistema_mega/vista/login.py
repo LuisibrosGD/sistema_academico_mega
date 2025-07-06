@@ -1,4 +1,5 @@
-#cargando modelo
+import tkinter as tk
+from tkinter import messagebox
 from sistema_mega.modelo.login_modelo import verificar_cuenta
 
 class LoginVentana(tk.Tk):
@@ -17,49 +18,85 @@ class LoginVentana(tk.Tk):
         self.usuario_entry = tk.Entry(self)
         self.usuario_entry.pack(padx=30, pady=5, fill="x")
 
-class Login:
+        # Contraseña
+        tk.Label(self, text="Contraseña:", anchor="w").pack(fill="x", padx=30)
+        self.contrasena_entry = tk.Entry(self, show="*")
+        self.contrasena_entry.pack(padx=30, pady=5, fill="x")
 
-    def consola_login(self):
+        # Botón Ingresar
+        self.boton_ingresar = tk.Button(self, text="Ingresar", bg="#2196F3", fg="white", command=self.verificar_login)
+        self.boton_ingresar.pack(pady=10)
 
-        while(True):
-            global rol
-            global encontrar
-            print("Iniciar sesión")
-            nombre_usuario = input("Usuario: ")
-            contrasenia = input("Password: ")
-            rol = input("rol (administrador/colaborador/estudiante/profesor): ")
+        # Advertencia
+        tk.Label(self, text="No compartas tus credenciales", fg="gray").pack()
 
-            # necesito verificar la contrasenia y obtener el rol
-            respuesta = verificar_cuenta(nombre_usuario, contrasenia, rol)
+        # Botón Invitado
+        self.boton_invitado = tk.Button(self, text="Entrar como invitado", command=self.entrar_como_invitado)
+        self.boton_invitado.pack(pady=10)
 
-            if respuesta is None:
-                print("El usuario no existe")
+    def centrar_ventana(self):
+        self.update_idletasks()
+        width = self.winfo_width()
+        height = self.winfo_height()
+        x = (self.winfo_screenwidth() // 2) - (width // 2)
+        y = (self.winfo_screenheight() // 2) - (height // 2)
+        self.geometry(f"{width}x{height}+{x}+{y}")
 
-            else:
-                print("Usuario encontrado")
-                encontrar = True
-                break
+    def verificar_login(self):
+        usuario = self.usuario_entry.get()
+        contrasena = self.contrasena_entry.get()
 
-        if encontrar:
-            if rol == "administrador":
-                print("Menu administrador")
-                objetoAdmin = Login_admin()
-                objetoAdmin.consola_menadmin()
-            elif rol == "colaborador":
-                print("Menu colaborador")
-                objetoColab = Login_colab()
-                objetoColab.consola_mencolab()
-            elif rol == "estudiante":
-                print("Menu estudiante")
-                objetoEstudiante = Login_Estudiante()
-                objetoEstudiante.consola_menestudiante()
-            elif rol == "profesor":
-                print("Menu profesor")
-                objetoProfe = Login_profesor()
-                objetoProfe.consola_menprofesor()
-            else:
-                print("rol no valido")
+        datos_usuario = verificar_cuenta(usuario,contrasena)
+        self.id = None
+        self.rol = None
+        self.nombre = None
+        if datos_usuario:
+            self.id, self.nombre, correo, contra, fecha_cre, estado, self.rol = datos_usuario
+            self.abrir_menu(self.rol)
+        else:
+            messagebox.showerror("Error", "Credenciales incorrectas")
 
+    def abrir_menu(self, rol):
+        self.withdraw()
+        if rol == "administrador":
+            self.abrir_interfaz_administrador(self.id, self.nombre)
+        elif rol == "colaborador":
+            self.abrir_interfaz_colaborador(self.id, self.nombre)
+        elif rol == "estudiante":
+            self.abrir_interfaz_estudiante(self.id, self.nombre)
+        elif rol == "profesor":
+            self.abrir_interfaz_profesor(self.id, self.nombre)
+
+    def abrir_interfaz_administrador(self, id, nombre):
+        from sistema_mega.vista.administrador.MenuAdministrador import MenuAdministrador
+        app = MenuAdministrador(id,nombre)
+        app.mainloop()
+
+    def abrir_interfaz_colaborador(self, id, nombre):
+        from sistema_mega.vista.colaborador.MenuColaborador import MenuColaborador
+        app = MenuColaborador(id, nombre)
+        app.mainloop()
+
+    def abrir_interfaz_estudiante(self, id, nombre):
+        from sistema_mega.vista.estudiante.MenuEstudiante import MenuEstudiante
+        app = MenuEstudiante(id, nombre)
+        app.mainloop()
+
+    def abrir_interfaz_profesor(self, id, nombre):
+        from sistema_mega.vista.profesor.MenuProfesor import MenuProfesor
+        app = MenuProfesor(id,nombre)
+        app.mainloop()
+
+    def entrar_como_invitado(self):
+        from sistema_mega.vista.invitado.ventana_invitado import MenuInvitado
+        app = MenuInvitado()
+        app.mainloop()
+
+
+# Ejecutar interfaz
+if __name__ == "__main__":
+    app1 = LoginVentana()
+    app1.mainloop()
 
 
 
