@@ -78,4 +78,3 @@ def ejecutar_procedimiento_con_out(nombre_proc, parametros=None):
         finally:
             cursor.close()
             conexion.close()
-
