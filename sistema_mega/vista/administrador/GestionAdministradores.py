@@ -59,19 +59,27 @@ class GestionAdministradores(tk.Toplevel):
         boton_editar.grid(row=1,column=1, sticky="nsew")
 
         # Tabla para mostrar administradores
+        # Frame contenedor exclusivo para la tabla y el scrollbar
+        frame_tabla = ttk.Frame(frame_principal)
+        frame_tabla.grid(row=2, column=0, columnspan=5, sticky="nsew")
+
+        # Asegura que el frame_tabla se expanda bien
+        frame_tabla.rowconfigure(0, weight=1)
+        frame_tabla.columnconfigure(0, weight=1)
+
         columnas = ("ID", "Nombre", "Ap. Paterno", "Ap. Materno", "Tipo Doc.", "Nro Doc.")
-        self.tabla_admins = ttk.Treeview(frame_principal, columns=columnas, show="headings")
+        self.tabla_admins = ttk.Treeview(frame_tabla, columns=columnas, show="headings")
         # Encabezados de columna
         for col in columnas:
             self.tabla_admins.heading(col, text=col)
             self.tabla_admins.column(col, width=100, anchor="center")
         # Scrollbar vertical
-        scrollbar_y = ttk.Scrollbar(frame_principal, orient="vertical", command=self.tabla_admins.yview)
+        scrollbar_y = ttk.Scrollbar(frame_tabla, orient="vertical", command=self.tabla_admins.yview)
         self.tabla_admins.configure(yscrollcommand=scrollbar_y.set)
 
-        # Posicionamiento
-        self.tabla_admins.grid(row=2, column=0, columnspan=5, sticky="nsew")
-        scrollbar_y.grid(row=2, column=0, columnspan=5, sticky="ns")
+        # Empaquetar tabla y scrollbar uno al lado del otro
+        self.tabla_admins.pack(side="left", fill="both", expand=True)
+        scrollbar_y.pack(side="right", fill="y")
 
         # boton para volver
         boton_volver = tk.Button(self, text="Volver", command=self.regresar_menu)
