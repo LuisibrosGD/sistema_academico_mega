@@ -1,5 +1,6 @@
-from sistema_mega.vista.login import Login
+from sistema_mega.vista.login import LoginVentana
 
 if __name__ == "__main__":
-    objetoLogin = Login()
-    objetoLogin.consola_login()
+    objetoLogin = LoginVentana()
+    objetoLogin.mainloop()
+

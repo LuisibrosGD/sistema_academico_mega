@@ -1,8 +1,8 @@
 from sistema_mega.database.conexion import ejecutar_select
 
-def verificar_cuenta(nombre,contrasenia,rol):
-    query = "SELECT * FROM usuarios WHERE nombre_usuario = %s AND contrasenia = %s AND rol = %s AND estado = 1"
-    valores = (nombre,contrasenia,rol)
+def verificar_cuenta(nombre,contrasenia):
+    query = "SELECT * FROM usuarios WHERE nombre_usuario = %s AND contrasenia = %s AND estado = 1"
+    valores = (nombre,contrasenia)
     resultado = ejecutar_select(query, valores)
 
     if not resultado:

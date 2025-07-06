@@ -1,5 +1,10 @@
 from sistema_mega.database.conexion import ejecutar_select, ejecutar_modificacion, obtener_conexion
 
+# Logica para las interfaces
+def mostrar_administradores():
+    query = "SELECT id_administrador, nombre, ap_paterno, ap_materno, tipo_documento, nro_documento FROM administradores;"
+    resultados = ejecutar_select(query)
+    return resultados
 
 # Logica para los cruds de profesor
 

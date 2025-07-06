@@ -1,10 +1,21 @@
 #cargando modelo
 from sistema_mega.modelo.login_modelo import verificar_cuenta
-#cargando vistas
-from sistema_mega.vista.menadmin import Login_admin
-from sistema_mega.vista.mencolaborador import Login_colab
-from sistema_mega.vista.menestudiante import Login_Estudiante
-from sistema_mega.vista.menprofesor import Login_profesor
+
+class LoginVentana(tk.Tk):
+    def __init__(self):
+        super().__init__()
+        self.title("Login")
+        self.geometry("350x300")
+        self.resizable(False, False)
+        self.centrar_ventana()
+
+        # Título
+        tk.Label(self, text="Iniciar Sesión", font=("Arial", 16, "bold")).pack(pady=10)
+
+        # Usuario
+        tk.Label(self, text="Usuario:", anchor="w").pack(fill="x", padx=30)
+        self.usuario_entry = tk.Entry(self)
+        self.usuario_entry.pack(padx=30, pady=5, fill="x")
 
 class Login:
 
