@@ -3,89 +3,114 @@ from tkinter import ttk, messagebox
 from datetime import datetime
 from tkcalendar import DateEntry
 from sistema_mega.modelo.colaborador_modelo import FuncionesColaborador
+from sistema_mega.database.conexion import ejecutar_select
+
+# Paleta de colores moderna
+PRIMARY_COLOR = "#3498db"
+SECONDARY_COLOR = "#2c3e50"
+ACCENT_COLOR = "#e74c3c"
+BACKGROUND_COLOR = "#ecf0f1"
+TEXT_COLOR = "#2c3e50"
+SUCCESS_COLOR = "#2ecc71"
+BUTTON_HOVER = "#2980b9"
 
 
 class VentanaRegistrarAsistencia(tk.Toplevel):
-    def __init__(self, parent):
+    def __init__(self, parent, id_colaborador):
         super().__init__(parent)
-        self.title("Registrar Asistencia")
-        self.geometry("500x350")
+        self.title("✅ Registrar Asistencia")
+        self.geometry("750x380")  # Aumentado para acomodar mejor el combobox
         self.resizable(False, False)
+        self.id_colaborador = id_colaborador
+
+        # Configurar estilos
+        self.style = ttk.Style(self)
+        self.style.configure("TFrame", background=BACKGROUND_COLOR)
+        self.style.configure("TLabel", background=BACKGROUND_COLOR, foreground=TEXT_COLOR, font=("Arial", 10))
+        self.style.configure("TButton", background=PRIMARY_COLOR, foreground="white",
+                             font=("Arial", 10, "bold"), borderwidth=1)
+        self.style.map("TButton", background=[("active", BUTTON_HOVER), ("pressed", PRIMARY_COLOR)])
+        self.style.configure("Title.TLabel", font=("Arial", 14, "bold"),
+                             foreground=SECONDARY_COLOR, background=BACKGROUND_COLOR)
+        self.style.configure("TRadiobutton", background=BACKGROUND_COLOR)
+        self.style.configure("TCombobox", fieldbackground="white", foreground=TEXT_COLOR)
 
         # Frame principal
-        main_frame = ttk.Frame(self, padding=20)
-        main_frame.pack(fill="both", expand=True)
+        main_frame = ttk.Frame(self, padding=20, style="TFrame")
+        main_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        main_frame.columnconfigure(1, weight=1)
 
-        # Título
-        ttk.Label(main_frame, text="Registrar Asistencia",
-                  font=("Arial", 14, "bold")).grid(row=0, column=0, columnspan=2, pady=(0, 15))
+        # Título con icono
+        ttk.Label(main_frame, text="📝 Registrar Asistencia",
+                  style="Title.TLabel").grid(row=0, column=0, columnspan=2, pady=(0, 15), sticky="w")
 
-        # Profesor
-        ttk.Label(main_frame, text="Profesor:", font=("Arial", 10)).grid(row=1, column=0, sticky="w", pady=5)
+        # Profesor - con más espacio para el combobox
+        ttk.Label(main_frame, text="Profesor:", style="TLabel").grid(row=1, column=0, sticky="w", pady=5)
 
-        # Obtener profesores con cursos
-        profesores = FuncionesColaborador.obtener_profesores_con_cursos()
+        profesores = FuncionesColaborador.obtener_profesores_por_colaborador(self.id_colaborador)
         self.profesores_dict = {}
         valores_combo = []
 
         if profesores:
             for profesor in profesores:
                 if len(profesor) >= 3:
-                    id_prof, nombre, curso = profesor[:3]
-                    texto = f"{nombre} - {curso}"
+                    nombre, curso, grupo = profesor[:3]
+                    texto = f"{nombre} - {curso} - {grupo}"
                     valores_combo.append(texto)
-                    self.profesores_dict[texto] = id_prof
+                    self.profesores_dict[texto] = nombre
                 else:
                     print(f"Formato inesperado: {profesor}")
         else:
-            print("No se encontraron profesores con cursos asignados")
+            print("No se encontraron profesores para este colaborador")
 
+        # Ajuste clave: combobox más ancho con scroll horizontal
         self.combo_profesor = ttk.Combobox(main_frame, values=valores_combo,
-                                           state="readonly", width=40)
+                                           state="readonly", width=45)  # Aumentado a 45 caracteres
         self.combo_profesor.grid(row=1, column=1, sticky="ew", pady=5, padx=(0, 10))
+
+        # Añadir scroll horizontal para nombres largos
+        self.combo_profesor.bind("<<ComboboxSelected>>", self.ajustar_scroll)
 
         if valores_combo:
             self.combo_profesor.current(0)
         else:
             self.combo_profesor.set("No hay profesores disponibles")
-            messagebox.showwarning("Advertencia", "No hay profesores disponibles para seleccionar")
+            ttk.Label(main_frame, text="⚠️ No hay profesores asignados",
+                      foreground=ACCENT_COLOR, background=BACKGROUND_COLOR).grid(row=1, column=1, sticky="w")
 
         # Estado de Asistencia
-        ttk.Label(main_frame, text="Estado de Asistencia:",
-                  font=("Arial", 10)).grid(row=2, column=0, sticky="w", pady=5)
+        ttk.Label(main_frame, text="Estado de Asistencia:", style="TLabel").grid(row=2, column=0, sticky="w", pady=5)
         self.estado_var = tk.StringVar(value="presente")
 
-        frame_estados = ttk.Frame(main_frame)
+        frame_estados = ttk.Frame(main_frame, style="TFrame")
         frame_estados.grid(row=2, column=1, sticky="w", pady=5)
 
-        ttk.Radiobutton(frame_estados, text="Presente", variable=self.estado_var,
-                        value="presente").pack(anchor="w")
-        ttk.Radiobutton(frame_estados, text="Tarde", variable=self.estado_var,
-                        value="tarde").pack(anchor="w")
-        ttk.Radiobutton(frame_estados, text="Ausente", variable=self.estado_var,
-                        value="ausente").pack(anchor="w")
+        ttk.Radiobutton(frame_estados, text="Presente ✅", variable=self.estado_var,
+                        value="presente", style="TRadiobutton").pack(anchor="w", padx=5, pady=2)
+        ttk.Radiobutton(frame_estados, text="Tarde ⏱️", variable=self.estado_var,
+                        value="tarde", style="TRadiobutton").pack(anchor="w", padx=5, pady=2)
+        ttk.Radiobutton(frame_estados, text="Ausente ❌", variable=self.estado_var,
+                        value="ausente", style="TRadiobutton").pack(anchor="w", padx=5, pady=2)
 
-        # Fecha (con selector de calendario)
-        ttk.Label(main_frame, text="Fecha:",
-                  font=("Arial", 10)).grid(row=3, column=0, sticky="w", pady=10)
-        self.cal_fecha = DateEntry(main_frame,
-                                   date_pattern="dd/MM/yyyy",
-                                   locale="es_ES",
-                                   width=12)
+        # Fecha
+        ttk.Label(main_frame, text="Fecha:", style="TLabel").grid(row=3, column=0, sticky="w", pady=10)
+        self.cal_fecha = DateEntry(main_frame, date_pattern="dd/MM/yyyy",
+                                   locale="es_ES", width=15, background="white")
         self.cal_fecha.grid(row=3, column=1, sticky="w", pady=10)
         self.cal_fecha.set_date(datetime.now())
 
         # Botones
-        btn_frame = ttk.Frame(main_frame)
+        btn_frame = ttk.Frame(main_frame, style="TFrame")
         btn_frame.grid(row=4, column=0, columnspan=2, pady=20)
 
         ttk.Button(btn_frame, text="Confirmar", command=self.registrar,
-                   width=10).pack(side="left", padx=10)
+                   style="TButton", width=12).pack(side="left", padx=10)
         ttk.Button(btn_frame, text="Cancelar", command=self.destroy,
-                   width=10).pack(side="left", padx=10)
+                   style="TButton", width=12).pack(side="left", padx=10)
 
-        # Configurar grid
-        main_frame.columnconfigure(1, weight=1)
+    def ajustar_scroll(self, event):
+        """Ajusta el scroll horizontal cuando se selecciona un profesor"""
+        self.combo_profesor.xview_moveto(0)
 
     def registrar(self):
         profesor_texto = self.combo_profesor.get()
@@ -93,46 +118,68 @@ class VentanaRegistrarAsistencia(tk.Toplevel):
         fecha = self.cal_fecha.get_date()
 
         if not profesor_texto or "No hay profesores" in profesor_texto:
-            messagebox.showerror("Error", "No hay profesores disponibles para seleccionar")
+            messagebox.showerror("Error", "⚠️ No hay profesores disponibles para seleccionar")
             return
 
-        id_profesor = self.profesores_dict.get(profesor_texto)
-        if not id_profesor:
-            messagebox.showerror("Error", "Profesor no válido")
+        # Obtener el nombre del profesor del texto seleccionado
+        nombre_profesor = self.profesores_dict.get(profesor_texto)
+        if not nombre_profesor:
+            messagebox.showerror("Error", "❌ Profesor no válido")
             return
 
         # Convertir fecha a formato YYYY-MM-DD HH:MM:SS
         fecha_dt = datetime.combine(fecha, datetime.min.time())
         fecha_str = fecha_dt.strftime("%Y-%m-%d %H:%M:%S")
 
+        # Obtener ID del profesor por su nombre completo
+        query = "SELECT id_profesor FROM profesores WHERE CONCAT(nombre, ' ', ap_paterno, ' ', ap_materno) = %s"
+        resultado = ejecutar_select(query, (nombre_profesor,))
+
+        if not resultado:
+            messagebox.showerror("Error", f"⚠️ No se encontró ID para el profesor: {nombre_profesor}")
+            return
+
+        id_profesor = resultado[0][0]
+
         # Registrar asistencia con fecha seleccionada
         success, mensaje = FuncionesColaborador.registrar_asistencia(estado, id_profesor, fecha_str)
         if success:
-            messagebox.showinfo("Éxito", mensaje)
+            messagebox.showinfo("Éxito ✅", mensaje)
             self.destroy()
         else:
-            messagebox.showerror("Error", mensaje)
-
+            messagebox.showerror("Error ❌", mensaje)
 
 class VentanaRegistrarCalificacion(tk.Toplevel):
     def __init__(self, parent):
         super().__init__(parent)
-        self.title("Registrar Calificación")
-        self.geometry("500x400")
+        self.title("📝 Registrar Calificación")
+        self.geometry("500x420")
         self.resizable(False, False)
 
-        # Frame principal
-        main_frame = ttk.Frame(self, padding=20)
-        main_frame.pack(fill="both", expand=True)
+        # Configurar estilos
+        self.style = ttk.Style(self)
+        self.style.configure("TFrame", background=BACKGROUND_COLOR)
+        self.style.configure("TLabel", background=BACKGROUND_COLOR, foreground=TEXT_COLOR, font=("Arial", 10))
+        self.style.configure("TButton", background=PRIMARY_COLOR, foreground="white",
+                             font=("Arial", 10, "bold"), borderwidth=1)
+        self.style.map("TButton", background=[("active", BUTTON_HOVER), ("pressed", PRIMARY_COLOR)])
+        self.style.configure("Title.TLabel", font=("Arial", 14, "bold"),
+                             foreground=SECONDARY_COLOR, background=BACKGROUND_COLOR)
+        self.style.configure("TCombobox", fieldbackground="white", foreground=TEXT_COLOR)
+        self.style.configure("TEntry", fieldbackground="white", foreground=TEXT_COLOR)
 
-        # Título
-        ttk.Label(main_frame, text="Registrar Calificación",
-                  font=("Arial", 14, "bold")).grid(row=0, column=0, columnspan=2, pady=(0, 15))
+        # Frame principal
+        main_frame = ttk.Frame(self, padding=20, style="TFrame")
+        main_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        main_frame.columnconfigure(1, weight=1)
+
+        # Título con icono
+        ttk.Label(main_frame, text="📝 Registrar Calificación",
+                  style="Title.TLabel").grid(row=0, column=0, columnspan=2, pady=(0, 15), sticky="w")
 
         # Estudiante
-        ttk.Label(main_frame, text="Estudiante:", font=("Arial", 10)).grid(row=1, column=0, sticky="w", pady=5)
+        ttk.Label(main_frame, text="Estudiante:", style="TLabel").grid(row=1, column=0, sticky="w", pady=8)
 
-        # Obtener estudiantes
         estudiantes = FuncionesColaborador.obtener_estudiantes()
         self.estudiantes_dict = {}
         valores_combo = []
@@ -142,41 +189,37 @@ class VentanaRegistrarCalificacion(tk.Toplevel):
             valores_combo.append(nombre)
             self.estudiantes_dict[nombre] = id_est
 
-        self.combo_estudiante = ttk.Combobox(main_frame, values=valores_combo,
-                                             state="readonly", width=35)
-        self.combo_estudiante.grid(row=1, column=1, sticky="ew", pady=5)
+        self.combo_estudiante = ttk.Combobox(main_frame, values=valores_combo, state="readonly", width=35)
+        self.combo_estudiante.grid(row=1, column=1, sticky="ew", pady=8)
+
         if valores_combo:
             self.combo_estudiante.current(0)
         else:
             self.combo_estudiante.set("No hay estudiantes disponibles")
+            ttk.Label(main_frame, text="⚠️ No hay estudiantes registrados",
+                      foreground=ACCENT_COLOR, background=BACKGROUND_COLOR).grid(row=1, column=1, sticky="w")
 
         # Puntaje
-        ttk.Label(main_frame, text="Puntaje (0.00 - 2000.00):",
-                  font=("Arial", 10)).grid(row=2, column=0, sticky="w", pady=5)
-        self.entry_puntaje = ttk.Entry(main_frame)
-        self.entry_puntaje.grid(row=2, column=1, sticky="ew", pady=5)
+        ttk.Label(main_frame, text="Puntaje (0.00 - 2000.00):", style="TLabel").grid(row=2, column=0, sticky="w",
+                                                                                     pady=8)
+        self.entry_puntaje = ttk.Entry(main_frame, style="TEntry")
+        self.entry_puntaje.grid(row=2, column=1, sticky="ew", pady=8)
 
-        # Fecha de evaluación (con selector de calendario)
-        ttk.Label(main_frame, text="Fecha de evaluación:",
-                  font=("Arial", 10)).grid(row=3, column=0, sticky="w", pady=5)
-        self.cal_fecha = DateEntry(main_frame,
-                                   date_pattern="dd/MM/yyyy",
-                                   locale="es_ES",
-                                   width=12)
-        self.cal_fecha.grid(row=3, column=1, sticky="w", pady=5)
+        # Fecha
+        ttk.Label(main_frame, text="Fecha de evaluación:", style="TLabel").grid(row=3, column=0, sticky="w", pady=8)
+        self.cal_fecha = DateEntry(main_frame, date_pattern="dd/MM/yyyy",
+                                   locale="es_ES", width=12, background="white")
+        self.cal_fecha.grid(row=3, column=1, sticky="w", pady=8)
         self.cal_fecha.set_date(datetime.now())
 
         # Botones
-        btn_frame = ttk.Frame(main_frame)
+        btn_frame = ttk.Frame(main_frame, style="TFrame")
         btn_frame.grid(row=4, column=0, columnspan=2, pady=20)
 
         ttk.Button(btn_frame, text="Guardar", command=self.registrar,
-                   width=10).pack(side="left", padx=10)
+                   style="TButton", width=12).pack(side="left", padx=10)
         ttk.Button(btn_frame, text="Cancelar", command=self.destroy,
-                   width=10).pack(side="left", padx=10)
-
-        # Configurar grid
-        main_frame.columnconfigure(1, weight=1)
+                   style="TButton", width=12).pack(side="left", padx=10)
 
     def registrar(self):
         estudiante_nombre = self.combo_estudiante.get()
@@ -184,11 +227,11 @@ class VentanaRegistrarCalificacion(tk.Toplevel):
         fecha = self.cal_fecha.get_date()
 
         if not estudiante_nombre or "No hay estudiantes" in estudiante_nombre:
-            messagebox.showerror("Error", "No hay estudiantes disponibles para seleccionar")
+            messagebox.showerror("Error ❌", "⚠️ No hay estudiantes disponibles para seleccionar")
             return
 
         if not puntaje:
-            messagebox.showerror("Error", "Ingrese un puntaje")
+            messagebox.showerror("Error ❌", "⚠️ Ingrese un puntaje")
             return
 
         try:
@@ -196,7 +239,7 @@ class VentanaRegistrarCalificacion(tk.Toplevel):
             if puntaje < 0 or puntaje > 2000:
                 raise ValueError("Puntaje fuera de rango")
         except ValueError:
-            messagebox.showerror("Error", "Ingrese un puntaje válido (0.00 - 2000.00)")
+            messagebox.showerror("Error ❌", "⚠️ Ingrese un puntaje válido (0.00 - 2000.00)")
             return
 
         # Convertir fecha a formato YYYY-MM-DD
@@ -204,7 +247,7 @@ class VentanaRegistrarCalificacion(tk.Toplevel):
 
         id_estudiante = self.estudiantes_dict.get(estudiante_nombre)
         if not id_estudiante:
-            messagebox.showerror("Error", "Estudiante no válido")
+            messagebox.showerror("Error ❌", "⚠️ Estudiante no válido")
             return
 
         success, mensaje = FuncionesColaborador.registrar_calificacion(
@@ -213,77 +256,91 @@ class VentanaRegistrarCalificacion(tk.Toplevel):
             fecha_str
         )
         if success:
-            messagebox.showinfo("Éxito", mensaje)
+            messagebox.showinfo("Éxito ✅", mensaje)
             self.destroy()
         else:
-            messagebox.showerror("Error", mensaje)
+            messagebox.showerror("Error ❌", mensaje)
 
 
 class VentanaNotasEstudiantes(tk.Toplevel):
-    def __init__(self, parent):
+    def __init__(self, parent, id_colaborador):
         super().__init__(parent)
-        self.title("Notas de Estudiantes")
-        self.geometry("1000x600")
+        self.title("📊 Reporte de Notas")
+        self.geometry("1100x650")
         self.resizable(True, True)
+        self.id_colaborador = id_colaborador
+
+        # Configurar estilos
+        self.style = ttk.Style(self)
+        self.style.configure("TFrame", background=BACKGROUND_COLOR)
+        self.style.configure("TLabel", background=BACKGROUND_COLOR, foreground=TEXT_COLOR, font=("Arial", 10))
+        self.style.configure("TButton", background=PRIMARY_COLOR, foreground="white",
+                             font=("Arial", 10, "bold"), borderwidth=1)
+        self.style.map("TButton", background=[("active", BUTTON_HOVER), ("pressed", PRIMARY_COLOR)])
+        self.style.configure("Title.TLabel", font=("Arial", 16, "bold"),
+                             foreground=SECONDARY_COLOR, background=BACKGROUND_COLOR)
+        self.style.configure("Filter.TFrame", background="#d6eaf8", relief="groove", borderwidth=1)
+        self.style.configure("Treeview", background="white", fieldbackground="white", foreground=TEXT_COLOR)
+        self.style.configure("Treeview.Heading", background=PRIMARY_COLOR, foreground="white",
+                             font=("Arial", 10, "bold"))
+        self.style.map("Treeview.Heading", background=[("active", BUTTON_HOVER)])
 
         # Frame principal
-        main_frame = ttk.Frame(self, padding=15)
+        main_frame = ttk.Frame(self, padding=15, style="TFrame")
         main_frame.pack(fill="both", expand=True)
+        main_frame.columnconfigure(0, weight=1)
+        main_frame.rowconfigure(2, weight=1)
 
         # Título
-        ttk.Label(main_frame, text="Notas de Estudiantes - Año Actual",
-                  font=("Arial", 14, "bold")).grid(row=0, column=0, columnspan=6, pady=(0, 15))
+        ttk.Label(main_frame, text="📊 Reporte de Notas de Estudiantes",
+                  style="Title.TLabel").grid(row=0, column=0, columnspan=6, pady=(0, 15), sticky="w")
 
         # Filtros
-        filtros_frame = ttk.LabelFrame(main_frame, text="Filtros", padding=10)
+        filtros_frame = ttk.LabelFrame(main_frame, text="Filtros", padding=10, style="Filter.TFrame")
         filtros_frame.grid(row=1, column=0, columnspan=6, sticky="ew", pady=(0, 15))
+        filtros_frame.columnconfigure(6, weight=1)
 
         # Área Académica
-        ttk.Label(filtros_frame, text="Área Académica:").grid(row=0, column=0, padx=5, sticky="w")
+        ttk.Label(filtros_frame, text="Área Académica:", style="TLabel").grid(row=0, column=0, padx=5, sticky="w")
         areas = FuncionesColaborador.obtener_areas_academicas()
-        self.combo_area = ttk.Combobox(filtros_frame, values=areas,
-                                       state="readonly", width=5)
+        self.combo_area = ttk.Combobox(filtros_frame, values=areas, state="readonly", width=8)
         self.combo_area.grid(row=0, column=1, padx=5, sticky="w")
         self.combo_area.set("Todas")
 
-        # Fecha Inicio (con selector de calendario)
-        ttk.Label(filtros_frame, text="Fecha Inicio:").grid(row=0, column=2, padx=5, sticky="w")
-        self.cal_fecha_ini = DateEntry(filtros_frame,
-                                       date_pattern="dd/MM/yyyy",
-                                       locale="es_ES",
-                                       width=12)
+        # Fecha Inicio
+        ttk.Label(filtros_frame, text="Fecha Inicio:", style="TLabel").grid(row=0, column=2, padx=5, sticky="w")
+        self.cal_fecha_ini = DateEntry(filtros_frame, date_pattern="dd/MM/yyyy",
+                                       locale="es_ES", width=12, background="white")
         self.cal_fecha_ini.grid(row=0, column=3, padx=5, sticky="w")
         self.cal_fecha_ini.set_date(datetime(2025, 1, 1))
 
-        # Fecha Fin (con selector de calendario)
-        ttk.Label(filtros_frame, text="Fecha Fin:").grid(row=0, column=4, padx=5, sticky="w")
-        self.cal_fecha_fin = DateEntry(filtros_frame,
-                                       date_pattern="dd/MM/yyyy",
-                                       locale="es_ES",
-                                       width=12)
+        # Fecha Fin
+        ttk.Label(filtros_frame, text="Fecha Fin:", style="TLabel").grid(row=0, column=4, padx=5, sticky="w")
+        self.cal_fecha_fin = DateEntry(filtros_frame, date_pattern="dd/MM/yyyy",
+                                       locale="es_ES", width=12, background="white")
         self.cal_fecha_fin.grid(row=0, column=5, padx=5, sticky="w")
         self.cal_fecha_fin.set_date(datetime.now())
 
         # Botón Aplicar Filtros
-        ttk.Button(filtros_frame, text="Aplicar Filtros",
-                   command=self.aplicar_filtros).grid(row=0, column=6, padx=10)
+        ttk.Button(filtros_frame, text="🔍 Aplicar Filtros", command=self.aplicar_filtros,
+                   style="TButton").grid(row=0, column=6, padx=10, sticky="e")
 
         # Tabla de notas
         columns = ("sede", "ciclo", "estudiante", "area", "nota", "fecha")
-        self.tree = ttk.Treeview(main_frame, columns=columns, show="headings", height=20)
+        self.tree = ttk.Treeview(main_frame, columns=columns, show="headings", height=20, style="Treeview")
 
-        # Configurar columnas
-        self.tree.heading("sede", text="Sede")
-        self.tree.heading("ciclo", text="Ciclo")
-        self.tree.heading("estudiante", text="Nombre Completo")
-        self.tree.heading("area", text="Área Académica")
-        self.tree.heading("nota", text="Nota")
-        self.tree.heading("fecha", text="Fecha")
+        # Configurar columnas con iconos
+        self.tree.heading("sede", text="📍 Sede")
+        self.tree.heading("ciclo", text="📅 Ciclo")
+        self.tree.heading("estudiante", text="👤 Estudiante")
+        self.tree.heading("area", text="📚 Área")
+        self.tree.heading("nota", text="⭐ Nota")
+        self.tree.heading("fecha", text="📆 Fecha")
 
-        self.tree.column("sede", width=120, anchor="w")
-        self.tree.column("ciclo", width=80, anchor="center")
-        self.tree.column("estudiante", width=180, anchor="w")
-        self.tree.column("area", width=100, anchor="center")
+        self.tree.column("sede", width=150, anchor="w")
+        self.tree.column("ciclo", width=100, anchor="center")
+        self.tree.column("estudiante", width=220, anchor="w")
+        self.tree.column("area", width=80, anchor="center")
         self.tree.column("nota", width=80, anchor="center")
         self.tree.column("fecha", width=100, anchor="center")
 
@@ -295,39 +352,32 @@ class VentanaNotasEstudiantes(tk.Toplevel):
         self.tree.configure(yscrollcommand=scrollbar.set)
 
         # Botón Regresar
-        ttk.Button(main_frame, text="Regresar a Menú principal",
-                   command=self.destroy).grid(row=3, column=0, columnspan=6, pady=20)
-
-        # Configurar grid
-        main_frame.columnconfigure(0, weight=1)
-        main_frame.rowconfigure(2, weight=1)
+        ttk.Button(main_frame, text="← Regresar", command=self.destroy,
+                   style="TButton").grid(row=3, column=0, columnspan=6, pady=20, sticky="e")
 
         # Cargar datos iniciales
         self.cargar_datos()
 
     def cargar_datos(self):
-        # Obtener valores de los filtros
         filtro_area = self.combo_area.get()
         fecha_ini = self.cal_fecha_ini.get_date()
         fecha_fin = self.cal_fecha_fin.get_date()
 
-        # Convertir fechas a formato YYYY-MM-DD
         fecha_ini_str = fecha_ini.strftime("%Y-%m-%d")
         fecha_fin_str = fecha_fin.strftime("%Y-%m-%d")
 
-        # Obtener datos de la base de datos
         resultados = FuncionesColaborador.obtener_notas_estudiantes(
-            None, filtro_area, fecha_ini_str, fecha_fin_str
+            self.id_colaborador,
+            filtro_area,
+            fecha_ini_str,
+            fecha_fin_str
         )
 
-        # Limpiar tabla
         for item in self.tree.get_children():
             self.tree.delete(item)
 
-        # Insertar datos
         if resultados:
             for dato in resultados:
-                # Convertir fecha al formato DD/MM/AAAA
                 if len(dato) >= 6:
                     fecha_original = dato[5]
                     try:
@@ -339,179 +389,108 @@ class VentanaNotasEstudiantes(tk.Toplevel):
                             dato = tuple(dato_lista)
                     except Exception as e:
                         print(f"Error al formatear fecha: {str(e)}")
-                        # Mantener la fecha original si hay error
 
                 self.tree.insert("", "end", values=dato)
         else:
-            messagebox.showinfo("Información", "No se encontraron registros con los filtros seleccionados")
+            messagebox.showinfo("Información ℹ️", "No se encontraron registros con los filtros seleccionados")
 
     def aplicar_filtros(self):
         self.cargar_datos()
 
-class MenuColaborador(tk.Toplevel):
-    def __init__(self, id_colaborador, nombre_colaborador):
+
+class MenuColaborador(tk.Tk):
+    def __init__(self, nombre_colaborador, id_colaborador):
         super().__init__()
-
-        self.title("Colaborador")
+        self.title(f"👤 Panel de {nombre_colaborador}")
         self.geometry("1000x700")
-        self.configure(bg="#f0f0f0")
-        self.id_colaborador = id_colaborador
-        self.nombre_colaborador = nombre_colaborador
-        self.frame_principal = None  # Inicializar atributo
+        self.resizable(False, False)
+        self.nombre_colab = nombre_colaborador
+        self.id_colab = id_colaborador
 
-        # Configurar el grid principal
-        self.rowconfigure(0, weight=1)
-        self.columnconfigure(0, weight=1)
+        # Configurar estilos
+        self.style = ttk.Style(self)
+        self.style.theme_use("clam")
+        self.style.configure("TFrame", background=BACKGROUND_COLOR)
+        self.style.configure("Header.TFrame", background=PRIMARY_COLOR)
+        self.style.configure("Title.TLabel", background=PRIMARY_COLOR, foreground="white",
+                             font=("Arial", 18, "bold"))
+        self.style.configure("TButton", background=PRIMARY_COLOR, foreground="white",
+                             font=("Arial", 12, "bold"), borderwidth=0, padding=10)
+        self.style.map("TButton", background=[("active", BUTTON_HOVER), ("pressed", PRIMARY_COLOR)])
+        self.style.configure("MenuButton.TButton", background=PRIMARY_COLOR, foreground="white",
+                             font=("Arial", 14, "bold"), padding=(20, 15), width=25)
+        self.style.map("MenuButton.TButton", background=[("active", BUTTON_HOVER), ("pressed", PRIMARY_COLOR)])
 
-        self.configurar_estilos()
-        self.crear_widgets()
-
-
-
-    @staticmethod
-    def configurar_estilos():
-        """Configurar los estilos de la interfaz"""
-        estilo = ttk.Style()
-        estilo.theme_use("clam")
-
-        # Estilo para el frame principal
-        estilo.configure("frameColaborador.TFrame", background="#f0f0f0")
-
-        # Estilo para el header
-        estilo.configure("headerColaborador.TFrame", background="#4a90e2")
-
-        # Estilo para el título del header
-        estilo.configure("tituloHeader.TLabel",
-                         background="#4a90e2",
-                         foreground="white",
-                         font=("Arial", 16, "bold"))
-
-        # Estilo para el botón de salir
-        estilo.configure("botonSalir.TButton",
-                         background="#ff6b6b",
-                         foreground="white",
-                         font=("Arial", 12, "bold"),
-                         borderwidth=0,
-                         relief="flat")
-        estilo.map("botonSalir.TButton",
-                   background=[("pressed", "#e74c3c"), ("active", "#ff8080")])
-
-        # Estilo para los botones del menú
-        estilo.configure("botonMenu.TButton",
-                         background="white",
-                         foreground="#333333",
-                         font=("Arial", 14),
-                         borderwidth=1,
-                         relief="solid",
-                         padding=(20, 15))
-        estilo.map("botonMenu.TButton",
-                   background=[("pressed", "#e0e0e0"), ("active", "#f5f5f5")])
-
-    def crear_widgets(self):
-        """Crear todos los widgets de la interfaz"""
         # Frame principal
-        self.frame_principal = ttk.Frame(self, style="frameColaborador.TFrame")
-        self.frame_principal.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
-
-        # Configurar grid del frame principal
-        self.frame_principal.rowconfigure(1, weight=1)
+        self.frame_principal = ttk.Frame(self, style="TFrame")
+        self.frame_principal.pack(fill="both", expand=True)
         self.frame_principal.columnconfigure(0, weight=1)
+        self.frame_principal.rowconfigure(1, weight=1)
 
-        # Crear header
+        # Header
         self.crear_header()
 
-        # Crear área de botones
+        # Área de botones
         self.crear_area_botones()
 
     def crear_header(self):
-        """Crear el header con título y botón de salir"""
-        header_frame = ttk.Frame(self.frame_principal, style="headerColaborador.TFrame")
-        header_frame.grid(row=0, column=0, sticky="ew", pady=(0, 20))
-        header_frame.columnconfigure(0, weight=1)
+        header = ttk.Frame(self.frame_principal, style="Header.TFrame", padding=(30, 20, 30, 30))
+        header.grid(row=0, column=0, sticky="ew")
+        header.columnconfigure(1, weight=1)
 
-        # Configurar padding interno
-        header_frame.configure(padding=(20, 15))
+        # Título con icono
+        title_label = ttk.Label(header,
+                                text=f"👋 Bienvenido, {self.nombre_colab}",
+                                style="Title.TLabel")
+        title_label.grid(row=0, column=0, sticky="w")
 
-        # Título del menú
-        titulo_label = ttk.Label(header_frame,
-                                 text=f"Panel Colaborador [{self.nombre_colaborador}]",
-                                 style="tituloHeader.TLabel")
-        titulo_label.grid(row=0, column=0, sticky="w")
-
-        # Botón de salir
-        boton_salir = ttk.Button(header_frame,
-                                 text="Salir",
-                                 style="botonSalir.TButton",
-                                 command=self.salir)
-        boton_salir.grid(row=0, column=1, sticky="e", padx=(10, 0))
+        # Botón de salir con icono
+        btn_salir = ttk.Button(header, text="🚪 Salir",
+                               style="TButton",
+                               command=self.salir)
+        btn_salir.grid(row=0, column=1, sticky="e")
 
     def crear_area_botones(self):
-        """Crear el área con los botones del menú"""
-        # Frame contenedor para los botones
-        botones_frame = ttk.Frame(self.frame_principal, style="frameColaborador.TFrame")
-        botones_frame.grid(row=1, column=0, sticky="nsew")
+        area_botones = ttk.Frame(self.frame_principal, style="TFrame", padding=50)
+        area_botones.grid(row=1, column=0, sticky="nsew")
+        area_botones.columnconfigure(0, weight=1)
 
-        # Configurar grid para centrar los botones
-        botones_frame.rowconfigure(0, weight=1)
-        botones_frame.rowconfigure(1, weight=0)
-        botones_frame.rowconfigure(2, weight=0)
-        botones_frame.rowconfigure(3, weight=0)
-        botones_frame.rowconfigure(4, weight=1)
-        botones_frame.columnconfigure(0, weight=1)
-        botones_frame.columnconfigure(1, weight=0)
-        botones_frame.columnconfigure(2, weight=1)
+        # Frame interno para centrar
+        center_frame = ttk.Frame(area_botones, style="TFrame")
+        center_frame.pack(expand=True)
 
-        # Datos de los botones específicos para colaborador
+        # Botones con iconos
         botones_info = [
             ("✅", "Registrar Asistencia", self.registrar_asistencia),
             ("📝", "Registrar Calificaciones", self.registrar_calificaciones),
-            ("📊", "Ver Exámenes", self.ver_examenes)
+            ("📊", "Ver Reporte de Notas", self.ver_examenes)
         ]
 
-        # Crear los botones
-        for i, (icono, texto, comando) in enumerate(botones_info):
-            self.crear_boton_menu(botones_frame, icono, texto, comando, i + 1)
+        for idx, (icono, texto, comando) in enumerate(botones_info):
+            btn_frame = ttk.Frame(center_frame, style="TFrame")
+            btn_frame.pack(pady=20, fill="x")
 
-    @staticmethod
-    def crear_boton_menu(parent, icono, texto, comando, fila):
-        """Crear un botón del menú con icono y texto"""
-        boton_frame = ttk.Frame(parent, style="frameColaborador.TFrame")
-        boton_frame.grid(row=fila, column=1, sticky="ew", pady=10)
-        boton_frame.configure(padding=(0, 0))
+            btn = ttk.Button(btn_frame,
+                             text=f"{icono}  {texto}",
+                             style="MenuButton.TButton",
+                             command=comando)
+            btn.pack(ipadx=20, ipady=15)
 
-        boton_frame.columnconfigure(0, weight=1)
-
-        boton = ttk.Button(boton_frame,
-                           text=f"{icono}  {texto}",
-                           style="botonMenu.TButton",
-                           command=comando,
-                           width=25)
-        boton.grid(row=0, column=0, sticky="ew")
-
-    # Métodos para los comandos de los botones
     def registrar_asistencia(self):
-        """Abrir ventana para registrar asistencia"""
-        ventana = VentanaRegistrarAsistencia(self)
+        ventana = VentanaRegistrarAsistencia(self, self.id_colab)
         ventana.grab_set()
 
     def registrar_calificaciones(self):
-        """Abrir ventana para registrar calificaciones"""
         ventana = VentanaRegistrarCalificacion(self)
         ventana.grab_set()
 
     def ver_examenes(self):
-        """Abrir ventana para ver exámenes"""
-        ventana = VentanaNotasEstudiantes(self)
+        ventana = VentanaNotasEstudiantes(self, self.id_colab)
         ventana.grab_set()
 
     def salir(self):
-        """Método para salir/cerrar sesión"""
-        print("Cerrando sesión de colaborador...")
         self.quit()
-
+        self.destroy()
 
     def mostrar(self):
-        """Mostrar la ventana"""
         self.mainloop()
-
-

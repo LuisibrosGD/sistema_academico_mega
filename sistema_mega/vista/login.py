@@ -72,9 +72,16 @@ class LoginVentana(tk.Tk):
         app = MenuAdministrador(id,nombre)
         app.mainloop()
 
-    def abrir_interfaz_colaborador(self, id, nombre):
+    def abrir_interfaz_colaborador (self, id_usuario, nombre_usuario):
+        from sistema_mega.modelo.colaborador_modelo import FuncionesColaborador
+        id_colab = FuncionesColaborador.obtener_id_colaborador_por_usuario(id_usuario)
+
+        if id_colab is None:
+            messagebox.showerror("Error", "No se encontró el colaborador asociado a esta cuenta")
+            return
+
         from sistema_mega.vista.colaborador.MenuColaborador import MenuColaborador
-        app = MenuColaborador(id, nombre)
+        app = MenuColaborador(nombre_usuario, id_colab)  # ← nombre primero, id segundo
         app.mainloop()
 
     def abrir_interfaz_estudiante(self, id, nombre):

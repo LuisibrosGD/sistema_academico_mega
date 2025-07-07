@@ -1,5 +1,9 @@
 import tkinter as tk
-from tkinter import ttk, Tk
+from tkinter import ttk, Tk, messagebox
+from sistema_mega.modelo.estudiante_modelo import ver_notas
+from sistema_mega.modelo.estudiante_modelo import ver_perfil
+from sistema_mega.database.conexion import ejecutar_procedimiento
+from sistema_mega.modelo.estudiante_modelo import cambiar_contrasenia
 
 
 class MenuEstudiante(tk.Toplevel):
@@ -167,7 +171,7 @@ class MenuEstudiante(tk.Toplevel):
         print("Ver notas")
         # Aquí puedes agregar la lógica para mostrar las notas
 
-    def actualizar_contrasena(self):
+def actualizar_contrasena(self):
         """Método para actualizar contraseña"""
         print("Actualizar contraseña")
         # Aquí puedes agregar la lógica para actualizar la contraseña

@@ -4,22 +4,31 @@ from sistema_mega.database.conexion import ejecutar_select, ejecutar_modificacio
 
 class FuncionesColaborador:
     @staticmethod
-    def obtener_profesores_con_cursos():
-        """Obtener profesores con sus cursos (sin grupos)"""
-        query = """
-        SELECT 
-            p.id_profesor,
-            CONCAT(p.nombre, ' ', p.ap_paterno, ' ', p.ap_materno) AS nombre_profesor,
-            c.nombre_curso
-        FROM profesores p
-        JOIN ciclos_cursos cc ON cc.id_profesor = p.id_profesor
-        JOIN cursos c ON c.id_curso = cc.id_curso
-        WHERE cc.id_ciclo 
+    def obtener_id_colaborador_por_usuario(id_usuario: int):
         """
-        return ejecutar_select(query)
+        Devuelve el id_colaborador asociado al id_usuario.
+        Retorna None si no existe.
+        """
+        try:
+            q = "SELECT id_colaborador FROM colaboradores WHERE id_usuario = %s"
+            r = ejecutar_select(q, (id_usuario,))
+            return r[0][0] if r else None
+        except Exception as e:
+            print(f"Error al obtener id_colaborador: {e}")
+            return None
+    @staticmethod
+    def obtener_profesores_por_colaborador(id_colaborador):
+        """Obtener profesores, cursos y grupos asignados a un colaborador usando el stored procedure"""
+        try:
+            query = "CALL sp_profesores_por_colaborador(%s)"
+            return ejecutar_select(query, (id_colaborador,))
+        except Exception as e:
+            print(f"Error al obtener profesores: {str(e)}")
+            return []
 
     @staticmethod
     def registrar_asistencia(estado, id_profesor, fecha=None):
+        """Registrar la asistencia de un profesor"""
         try:
             # Verificar que el profesor existe
             query_check = "SELECT id_profesor FROM profesores WHERE id_profesor = %s"
@@ -42,11 +51,17 @@ class FuncionesColaborador:
 
     @staticmethod
     def obtener_estudiantes():
-        query = "SELECT id_estudiante, CONCAT(nombre, ' ', ap_paterno, ' ', ap_materno) FROM estudiantes"
-        return ejecutar_select(query)
+        """Obtener lista de estudiantes con su nombre completo"""
+        try:
+            query = "SELECT id_estudiante, CONCAT(nombre, ' ', ap_paterno, ' ', ap_materno) FROM estudiantes"
+            return ejecutar_select(query)
+        except Exception as e:
+            print(f"Error al obtener estudiantes: {str(e)}")
+            return []
 
     @staticmethod
     def registrar_calificacion(id_estudiante, puntaje, fecha_realizacion):
+        """Registrar una nueva calificación/examen para un estudiante"""
         try:
             query = "INSERT INTO examenes (puntaje, fecha_realizacion, id_estudiante) VALUES (%s, %s, %s)"
             datos = (puntaje, fecha_realizacion, id_estudiante)
@@ -56,54 +71,68 @@ class FuncionesColaborador:
             return False, f"Error al registrar calificación: {str(e)}"
 
     @staticmethod
-    def obtener_notas_estudiantes(filtro_grupo=None, filtro_area=None, fecha_ini=None, fecha_fin=None):
-        """Obtener notas con estructura simplificada"""
-        query = """
-        SELECT 
-            s.nombre AS sede,
-            cp.nombre_ciclo AS ciclo,
-            CONCAT(e.nombre, ' ', e.ap_paterno, ' ', e.ap_materno) AS estudiante,
-            e.area_academica AS area,
-            ex.puntaje AS nota,
-            ex.fecha_realizacion AS fecha
-        FROM examenes ex
-        JOIN estudiantes e ON ex.id_estudiante = e.id_estudiante
-        JOIN inscripciones i ON i.id_estudiante = e.id_estudiante
-        JOIN ciclos_programados cp ON cp.id_ciclo = i.id_ciclo
-        JOIN sedes_ciclos sc ON sc.id_ciclo = cp.id_ciclo
-        JOIN sedes s ON s.id_sede = sc.id_sede
-        WHERE 1=1
-        """
+    def obtener_notas_estudiantes(id_colaborador, filtro_area=None, fecha_ini=None, fecha_fin=None):
+        """Obtener notas de estudiantes usando el nuevo stored procedure y aplicando filtros adicionales"""
+        try:
+            # Llamar al stored procedure con el ID del colaborador
+            query = "CALL sp_reporte_estudiantes_por_colaborador(%s)"
+            resultados = ejecutar_select(query, (id_colaborador,))
 
-        params = []
+            if not resultados:
+                return []
 
-        if filtro_area and filtro_area != "Todas":
-            query += " AND e.area_academica = %s"
-            params.append(filtro_area)
+            # Aplicar filtros adicionales
+            datos_filtrados = []
 
-        if fecha_ini:
-            query += " AND ex.fecha_realizacion >= %s"
-            params.append(fecha_ini)
+            for fila in resultados:
+                # Estructura de fila: (sede, ciclo, estudiante, area, nota, fecha)
 
-        if fecha_fin:
-            query += " AND ex.fecha_realizacion <= %s"
-            params.append(fecha_fin)
+                # Filtro por área académica
+                if filtro_area and filtro_area != "Todas":
+                    if fila[3] != filtro_area:  # El área está en el índice 3
+                        continue
 
-        query += " ORDER BY ex.fecha_realizacion DESC"
+                # Filtro por fechas
+                fecha_examen = fila[5]  # La fecha está en el índice 5
 
-        return ejecutar_select(query, tuple(params) if params else None)
+                # Convertir fechas de filtro a objetos date si existen
+                fecha_ini_dt = datetime.strptime(fecha_ini, "%Y-%m-%d").date() if fecha_ini else None
+                fecha_fin_dt = datetime.strptime(fecha_fin, "%Y-%m-%d").date() if fecha_fin else None
+
+                # Si la fecha del examen es string, convertirla a date
+                if isinstance(fecha_examen, str):
+                    fecha_examen = datetime.strptime(fecha_examen, "%Y-%m-%d").date()
+
+                # Aplicar filtro de fecha inicial
+                if fecha_ini_dt and fecha_examen < fecha_ini_dt:
+                    continue
+
+                # Aplicar filtro de fecha final
+                if fecha_fin_dt and fecha_examen > fecha_fin_dt:
+                    continue
+
+                datos_filtrados.append(fila)
+
+            return datos_filtrados
+        except Exception as e:
+            print(f"Error al obtener notas: {str(e)}")
+            return []
 
     @staticmethod
     def obtener_nombre_estudiante(id_estudiante):
-        """Obtener nombre completo de estudiante"""
-        query = "SELECT nombre, ap_paterno, ap_materno FROM estudiantes WHERE id_estudiante = %s"
-        resultado = ejecutar_select(query, (id_estudiante,))
-        if resultado:
-            nombre, ap_paterno, ap_materno = resultado[0]
-            return f"{nombre} {ap_paterno} {ap_materno}"
-        return "Estudiante desconocido"
+        """Obtener nombre completo de un estudiante por su ID"""
+        try:
+            query = "SELECT nombre, ap_paterno, ap_materno FROM estudiantes WHERE id_estudiante = %s"
+            resultado = ejecutar_select(query, (id_estudiante,))
+            if resultado:
+                nombre, ap_paterno, ap_materno = resultado[0]
+                return f"{nombre} {ap_paterno} {ap_materno}"
+            return "Estudiante desconocido"
+        except Exception as e:
+            print(f"Error al obtener nombre de estudiante: {str(e)}")
+            return "Estudiante desconocido"
 
     @staticmethod
     def obtener_areas_academicas():
-        """Obtener lista de áreas académicas"""
+        """Obtener lista de áreas académicas disponibles"""
         return ["Todas", "A", "B", "C", "D", "E"]
