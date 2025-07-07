@@ -167,19 +167,29 @@ class MenuEstudiante(tk.Toplevel):
         # Aquí puedes agregar la lógica para mostrar los pagos
 
     def ver_notas(self):
-        """Método para ver notas"""
-        print("Ver notas")
-        # Aquí puedes agregar la lógica para mostrar las notas
+        self.withdraw()
+        ventana = GestionNotas(self.id_usuario, self.nombre_usuario)
+        ventana.grab_set()
+        # Cuando se cierre la nueva ventana, vuelve a mostrar la actual
+        ventana.protocol("WM_DELETE_WINDOW", lambda: [ventana.destroy(), self.deiconify()])
+        # Aquí puedes agregar la lógica para mostrar los pagos
 
-def actualizar_contrasena(self):
-        """Método para actualizar contraseña"""
-        print("Actualizar contraseña")
-        # Aquí puedes agregar la lógica para actualizar la contraseña
+    def actualizar_contrasena(self):
+        self.withdraw()
+        ventana = GestionContrasena(self.id_usuario, self.nombre_usuario)
+        ventana.grab_set()
+        # Cuando se cierre la nueva ventana, vuelve a mostrar la actual
+        ventana.protocol("WM_DELETE_WINDOW", lambda: [ventana.destroy(), self.deiconify()])
+        # Aquí puedes agregar la lógica para mostrar los pagos
 
     def ver_perfil(self):
-        """Método para ver perfil"""
-        print("Ver perfil")
-        # Aquí puedes agregar la lógica para mostrar el perfil
+        self.withdraw()
+        ventana = GestionPerfil(self.id_usuario, self.nombre_usuario)
+        ventana.grab_set()
+        # Cuando se cierre la nueva ventana, vuelve a mostrar la actual
+        ventana.protocol("WM_DELETE_WINDOW", lambda: [ventana.destroy(), self.deiconify()])
+        # Aquí puedes agregar la lógica para mostrar los pagos
+
 
     def salir(self):
         """Método para salir/cerrar sesión"""
@@ -190,6 +200,234 @@ def actualizar_contrasena(self):
         """Mostrar la ventana"""
         self.mainloop()
 
+# opciones a ingresar =====================================
+class GestionContrasena(tk.Toplevel):
+    def __init__(self, id_usuario, nombre_usuario):
+        super().__init__()
+        self.title("Actualizar Contraseña")
+        self.geometry("500x350")
+        self.configure(bg="#eaf6ff")
+
+        self.id_usuario = id_usuario
+        self.nombre_usuario = nombre_usuario
+
+        self.configurar_estilo()
+        self.crear_widgets()
+
+    def configurar_estilo(self):
+        estilo = ttk.Style()
+        estilo.theme_use("clam")
+
+        estilo.configure("Titulo.TLabel",
+                         background="#4a90e2",
+                         foreground="white",
+                         font=("Arial", 14, "bold"),
+                         padding=10)
+
+        estilo.configure("Etiqueta.TLabel",
+                         background="#eaf6ff",
+                         foreground="#004080",
+                         font=("Arial", 11, "bold"))
+
+        estilo.configure("Boton.TButton",
+                         background="#4a90e2",
+                         foreground="white",
+                         font=("Arial", 12, "bold"))
+        estilo.map("Boton.TButton",
+                   background=[("active", "#6fb3f2")])
+
+    def crear_widgets(self):
+        ttk.Label(self,
+                  text="Cambiar Contraseña",
+                  style="Titulo.TLabel").pack(fill="x")
+
+        formulario = ttk.Frame(self, style="frame.TFrame")
+        formulario.pack(padx=30, pady=25, fill="both", expand=True)
+
+        # Campo contraseña actual
+        ttk.Label(formulario, text="Contraseña Actual:", style="Etiqueta.TLabel").grid(row=0, column=0, sticky="w",
+                                                                                       pady=5)
+        self.entry_actual = ttk.Entry(formulario, show="*")
+        self.entry_actual.grid(row=0, column=1, pady=5)
+
+        # Campo nueva contraseña
+        ttk.Label(formulario, text="Nueva Contraseña:", style="Etiqueta.TLabel").grid(row=1, column=0, sticky="w",
+                                                                                      pady=5)
+        self.entry_nueva = ttk.Entry(formulario, show="*")
+        self.entry_nueva.grid(row=1, column=1, pady=5)
+
+        # Campo repetir nueva contraseña
+        ttk.Label(formulario, text="Repetir Nueva Contraseña:", style="Etiqueta.TLabel").grid(row=2, column=0,
+                                                                                              sticky="w", pady=5)
+        self.entry_repetir = ttk.Entry(formulario, show="*")
+        self.entry_repetir.grid(row=2, column=1, pady=5)
+
+        # Botón actualizar
+        btn_actualizar = ttk.Button(formulario,
+                                    text="Actualizar Contraseña",
+                                    style="Boton.TButton",
+                                    command=self.actualizar_contrasena)
+        btn_actualizar.grid(row=3, column=0, columnspan=2, pady=20)
+
+        formulario.columnconfigure(1, weight=1)
+
+    def actualizar_contrasena(self):
+        actual = self.entry_actual.get().strip()
+        nueva = self.entry_nueva.get().strip()
+        repetir = self.entry_repetir.get().strip()
+
+        if not actual or not nueva or not repetir:
+            messagebox.showwarning("Campos Vacíos", "Por favor complete todos los campos.")
+            return
+
+        if nueva != repetir:
+            messagebox.showwarning("Error", "Las nuevas contraseñas no coinciden.")
+            return
+
+        try:
+            resultado = cambiar_contrasenia(self.id_usuario, actual, nueva)
+            if resultado:
+                messagebox.showinfo("Éxito", resultado[0])
+                self.destroy()
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+class GestionNotas(tk.Toplevel):
+    def __init__(self, id_usuario, nombre_usuario):
+        super().__init__()
+        self.title("Notas del Estudiante")
+        self.geometry("800x450")
+        self.configure(bg="#eaf6ff")
+
+        self.id_usuario = id_usuario
+        self.nombre_usuario = nombre_usuario
+
+        self.configurar_estilo()
+        self.crear_widgets()
+
+    def configurar_estilo(self):
+        estilo = ttk.Style()
+        estilo.theme_use("clam")
+
+        estilo.configure("Encabezado.TLabel",
+                         background="#4a90e2",
+                         foreground="white",
+                         font=("Arial", 14, "bold"),
+                         padding=10)
+
+        estilo.configure("Tabla.Treeview",
+                         background="#ffffff",
+                         foreground="#004080",
+                         fieldbackground="#ffffff",
+                         font=("Arial", 11))
+
+        estilo.configure("Tabla.Treeview.Heading",
+                         background="#4a90e2",
+                         foreground="white",
+                         font=("Arial", 12, "bold"))
+
+    def crear_widgets(self):
+        ttk.Label(self,
+                  text=f"Notas de {self.nombre_usuario}",
+                  style="Encabezado.TLabel").pack(fill="x")
+
+        self.tabla = ttk.Treeview(self,
+                                  columns=("Curso", "Ciclo", "Nota", "Fecha"),
+                                  style="Tabla.Treeview",
+                                  show="headings")
+
+        self.tabla.heading("Curso", text="Curso")
+        self.tabla.heading("Ciclo", text="Ciclo")
+        self.tabla.heading("Nota", text="Nota")
+        self.tabla.heading("Fecha", text="Fecha del Examen")
+
+        self.tabla.column("Curso", width=200)
+        self.tabla.column("Ciclo", width=150)
+        self.tabla.column("Nota", width=100, anchor="center")
+        self.tabla.column("Fecha", width=150, anchor="center")
+
+        self.tabla.pack(padx=20, pady=20, fill="both", expand=True)
+
+        self.cargar_datos()
+
+    def cargar_datos(self):
+        try:
+            resultados = ver_notas(self.id_usuario)
+            for fila in resultados:
+                self.tabla.insert("", "end", values=fila)
+        except Exception as e:
+            print("Error al obtener notas:", e)
+
+def actualizar_contrasena(self):
+        """Método para actualizar contraseña"""
+        print("Actualizar contraseña")
+        # Aquí puedes agregar la lógica para actualizar la contraseña
+
+
+
+class GestionPerfil(tk.Toplevel):
+    def __init__(self, id_estudiante, nombre_usuario):
+        super().__init__()
+        self.title("Perfil del Estudiante")
+        self.geometry("600x400")
+        self.configure(bg="#eaf6ff")
+
+        self.id_estudiante = id_estudiante
+        self.nombre_usuario = nombre_usuario
+
+        self.configurar_estilo()
+        self.crear_widgets()
+
+    def configurar_estilo(self):
+        estilo = ttk.Style()
+        estilo.theme_use("clam")
+
+        estilo.configure("Encabezado.TLabel",
+                         background="#4a90e2",
+                         foreground="white",
+                         font=("Arial", 14, "bold"),
+                         padding=10)
+
+        estilo.configure("Etiqueta.TLabel",
+                         background="#eaf6ff",
+                         foreground="#004080",
+                         font=("Arial", 11, "bold"))
+
+        estilo.configure("Valor.TLabel",
+                         background="#eaf6ff",
+                         foreground="#000000",
+                         font=("Arial", 11))
+
+    def crear_widgets(self):
+        ttk.Label(self,
+                  text=f"Perfil de {self.nombre_usuario}",
+                  style="Encabezado.TLabel").pack(fill="x")
+
+        self.frame_info = ttk.Frame(self, style="frame.TFrame")
+        self.frame_info.pack(padx=30, pady=20, fill="both", expand=True)
+
+        self.cargar_datos()
+
+    def cargar_datos(self):
+        try:
+            perfil = ver_perfil(self.id_estudiante)
+            if perfil:
+                datos = perfil[0]
+                etiquetas = [
+                    "Nombre de Usuario", "Correo", "Nombre Completo",
+                    "Tipo de Documento", "Número de Documento",
+                    "Área Académica", "Ciclo Inscrito"
+                ]
+
+                for etiqueta, valor in zip(etiquetas, datos):
+                    fila = ttk.Frame(self.frame_info)
+                    fila.pack(anchor="w", pady=5)
+
+                    ttk.Label(fila, text=f"{etiqueta}: ", style="Etiqueta.TLabel").pack(side="left")
+                    ttk.Label(fila, text=valor, style="Valor.TLabel").pack(side="left")
+
+        except Exception as e:
+            print("Error al obtener perfil:", e)
 
 # Ejecutar la aplicación
 if __name__ == "__main__":

@@ -59,22 +59,31 @@ def ejecutar_procedimiento(nombre_proc, parametros=None):
             conexion.close()
 
 # Ejecutar procedimiento con OUT
-def ejecutar_procedimiento_con_out(nombre_proc, parametros=None):
+def ejecutar_procedimiento_con_out(nombre_proc, parametros=None, cantidad_out=1):
     conexion = obtener_conexion()
-    if conexion:
-        cursor = conexion.cursor()
-        try:
-            # Si hay parámetros, pásalos; si no, llama sin ellos
-            if parametros is not None:
-                resultados = cursor.callproc(nombre_proc, parametros)
-            else:
-                resultados = cursor.callproc(nombre_proc)
+    if not conexion:
+        return None if cantidad_out == 1 else [None] * cantidad_out
 
-            conexion.commit()
-            return resultados  # Lista con IN y OUT
-        except mysql.connector.Error as err:
-            print(f"❌ Error al ejecutar el procedimiento con OUT: {err}")
-            conexion.rollback()
-        finally:
-            cursor.close()
-            conexion.close()
+    cursor = conexion.cursor()
+    try:
+        # Si no se pasan parámetros IN, usar lista vacía
+        parametros = parametros or []
+
+        # Agregamos 'None' para los parámetros OUT
+        parametros_completos = parametros + [None] * cantidad_out
+
+        resultado = cursor.callproc(nombre_proc, parametros_completos)
+
+        conexion.commit()
+
+        # Extraer solo los valores OUT del final
+        outs = resultado[-cantidad_out:]
+        return outs[0] if cantidad_out == 1 else outs
+
+    except mysql.connector.Error as err:
+        print(f"❌ Error al ejecutar el procedimiento con OUT: {err}")
+        conexion.rollback()
+        return None if cantidad_out == 1 else [None] * cantidad_out
+    finally:
+        cursor.close()
+        conexion.close()

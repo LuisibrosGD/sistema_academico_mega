@@ -91,7 +91,7 @@ class LoginVentana(tk.Tk):
 
     def abrir_interfaz_profesor(self, id, nombre):
         from sistema_mega.vista.profesor.MenuProfesor import MenuProfesor
-        app = MenuProfesor(id,nombre)
+        app = MenuProfesor(self,id,nombre)
         app.mainloop()
 
     def entrar_como_invitado(self):
@@ -104,12 +104,4 @@ class LoginVentana(tk.Tk):
 if __name__ == "__main__":
     app1 = LoginVentana()
     app1.mainloop()
-
-
-
-
-
-
-
-
 

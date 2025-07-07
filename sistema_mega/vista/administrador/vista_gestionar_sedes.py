@@ -2,15 +2,17 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from sistema_mega.modelo.modelo_sedes import ModeloSedes
 from sistema_mega.vista.administrador.CiclosVista import CiclosVista
+from sistema_mega.vista.administrador.MenuAdministrador import MenuAdministrador
 
 
-class GestionarSedes:
-    def __init__(self, parent=None):
+class GestionarSedes(tk.Toplevel):
+    def __init__(self, parent):
+        super().__init__()
         self.parent = parent
-        self.root = tk.Tk() if parent is None else tk.Toplevel(parent)
-        self.root.title("Gestionar Sedes")
-        self.root.geometry("1200x800")
-        self.root.configure(bg="#f0f0f0")
+
+        self.title("Gestionar Sedes")
+        self.geometry("1200x800")
+        self.configure(bg="#f0f0f0")
 
         # Variables
         self.sedes_data = []
@@ -18,8 +20,8 @@ class GestionarSedes:
         self.ciclos_vista = None
 
         # Configurar el grid principal
-        self.root.rowconfigure(0, weight=1)
-        self.root.columnconfigure(0, weight=1)
+        self.rowconfigure(0, weight=1)
+        self.columnconfigure(0, weight=1)
 
         self.configurar_estilos()
         self.crear_widgets()
@@ -115,7 +117,7 @@ class GestionarSedes:
     def crear_widgets(self):
         """Crear todos los widgets de la interfaz"""
         # Frame principal
-        self.frame_principal = ttk.Frame(self.root, style="framePrincipal.TFrame")
+        self.frame_principal = ttk.Frame(self, style="framePrincipal.TFrame")
         self.frame_principal.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
 
         # Configurar grid del frame principal
@@ -313,7 +315,7 @@ class GestionarSedes:
 
         try:
             # Crear instancia de CiclosVista y mostrar ciclos
-            self.ciclos_vista = CiclosVista(self.root)
+            self.ciclos_vista = CiclosVista(self)
             self.ciclos_vista.mostrar_ciclos_sede(self.sede_seleccionada)
 
         except Exception as e:
@@ -322,14 +324,14 @@ class GestionarSedes:
 
     def ventana_formulario(self, titulo, comando_guardar, datos_sede=None):
         """Crear ventana de formulario para agregar/editar sede"""
-        ventana = tk.Toplevel(self.root)
+        ventana = tk.Toplevel(self)
         ventana.title(titulo)
         ventana.geometry("400x300")
         ventana.configure(bg="#f0f0f0")
         ventana.resizable(False, False)
 
         # Centrar ventana
-        ventana.transient(self.root)
+        ventana.transient(self)
         ventana.grab_set()
 
         # Variables
@@ -411,7 +413,9 @@ class GestionarSedes:
         respuesta = messagebox.askyesno("Confirmar salida",
                                         "¿Está seguro que desea regresar al menú principal?")
         if respuesta:
-            self.root.quit()
+            self.destroy()
+            self.parent.deiconify()
+
 
     # Métodos para el scroll
     def on_frame_configure(self, event):
@@ -429,7 +433,7 @@ class GestionarSedes:
 
     def mostrar(self):
         """Mostrar la ventana"""
-        self.root.mainloop()
+        self.mainloop()
 
 
 # Ejecutar la aplicación

@@ -1,61 +1,71 @@
-class ModeloCiclos:
-    """Modelo para manejar operaciones relacionadas con ciclos"""
+from sistema_mega.database.conexion import ejecutar_procedimiento, ejecutar_select, ejecutar_modificacion
+from datetime import datetime
 
-    @staticmethod
-    def obtener_ciclos_por_sede(id_sede):
+
+
+"""Modelo para manejar operaciones relacionadas con ciclos"""
+
+def obtener_ciclos_por_sede(id_sede):
+    """
+    Obtener todos los ciclos programados para una sede específica
+    Args:
+        id_sede (int): ID de la sede
+    Returns:
+        list: Lista de tuplas con información de ciclos
+    """
+    try:
+        # Query para obtener ciclos de una sede específica
+        query = """
+            SELECT cp.id_ciclo, cp.nombre_ciclo, cp.modalidad, cp.costo, 
+                   cp.fecha_inicio, cp.fecha_fin, cp.estado
+            FROM ciclos_programados cp
+            INNER JOIN sedes_ciclos sc ON cp.id_ciclo = sc.id_ciclo
+            WHERE sc.id_sede = %s
+            ORDER BY cp.fecha_inicio DESC
         """
-        Obtener todos los ciclos programados para una sede específica
 
-        Args:
-            id_sede (int): ID de la sede
+        resultados = ejecutar_select(query, (id_sede,))
+        return resultados if resultados else []
 
-        Returns:
-            list: Lista de tuplas con información de ciclos
+    except Exception as e:
+        print(f"❌ Error al obtener ciclos por sede: {e}")
+        raise e
+
+def obtener_ciclo_por_id(id_ciclo):
+    """
+    Obtener información de un ciclo específico
+    Args:
+        id_ciclo (int): ID del ciclo
+    Returns:
+        tuple: Información del ciclo o None si no existe
+    """
+    try:
+        query = """
+            SELECT id_ciclo, nombre_ciclo, modalidad, costo, fecha_inicio, fecha_fin, estado
+            FROM ciclos_programados
+            WHERE id_ciclo = %s
         """
-        try:
-            # Aquí iría la lógica para obtener ciclos de la base de datos
-            # Por ahora importamos desde ModeloSedes para mantener compatibilidad
-            from sistema_mega.modelo.modelo_sedes import ModeloSedes
-            return ModeloSedes.obtener_ciclos_por_sede(id_sede)
-        except Exception as e:
-            print(f"❌ Error al obtener ciclos por sede: {e}")
-            raise e
 
-    @staticmethod
-    def obtener_ciclo_por_id(id_ciclo):
-        """
-        Obtener información de un ciclo específico
+        resultados = ejecutar_select(query, (id_ciclo,))
+        return resultados[0] if resultados else None
 
-        Args:
-            id_ciclo (int): ID del ciclo
+    except Exception as e:
+        print(f"❌ Error al obtener ciclo por ID: {e}")
+        raise e
 
-        Returns:
-            tuple: Información del ciclo o None si no existe
-        """
-        try:
-            # Implementar lógica para obtener un ciclo específico
-            # Esta función se puede implementar cuando se necesite
-            pass
-        except Exception as e:
-            print(f"❌ Error al obtener ciclo por ID: {e}")
-            raise e
-
-    @staticmethod
-    def validar_datos_ciclo(nombre, modalidad, costo, fecha_inicio, fecha_fin):
-        """
-        Validar datos de un ciclo
-
-        Args:
-            nombre (str): Nombre del ciclo
-            modalidad (str): Modalidad del ciclo
-            costo (float): Costo del ciclo
-            fecha_inicio (str): Fecha de inicio
-            fecha_fin (str): Fecha de fin
-
-        Returns:
-            list: Lista de errores de validación
-        """
-        errores = []
+def validar_datos_ciclo(nombre, modalidad, costo, fecha_inicio, fecha_fin):
+    """
+    Validar los datos de un ciclo antes de guardar
+    Args:
+        nombre (str): Nombre del ciclo
+        modalidad (str): Modalidad del ciclo
+        costo (float): Costo del ciclo
+        fecha_inicio (str): Fecha de inicio en formato YYYY-MM-DD
+        fecha_fin (str): Fecha de fin en formato YYYY-MM-DD
+    Returns:
+        tuple: (es_valido, lista_errores)
+    """
+    errores = []
 
     # Validar nombre
     if not nombre or not nombre.strip():
@@ -96,60 +106,128 @@ class ModeloCiclos:
         if diferencia_dias < 1:
             errores.append("El ciclo debe tener una duración mínima de 1 día")
 
-        return errores
+    except ValueError:
+        errores.append("Las fechas deben estar en formato válido (YYYY-MM-DD)")
 
-    @staticmethod
-    def agregar_ciclo(id_sede, nombre, modalidad, costo, fecha_inicio, fecha_fin):
-        """
-        Agregar un nuevo ciclo
+    return len(errores) == 0, errores
 
-        Args:
-            id_sede (int): ID de la sede
-            nombre (str): Nombre del ciclo
-            modalidad (str): Modalidad del ciclo
-            costo (float): Costo del ciclo
-            fecha_inicio (str): Fecha de inicio
-            fecha_fin (str): Fecha de fin
+def agregar_ciclo(id_sede, nombre, modalidad, costo, fecha_inicio, fecha_fin):
+    """
+    Agregar un nuevo ciclo programado usando el stored procedure
+    Args:
+        id_sede (int): ID de la sede
+        nombre (str): Nombre del ciclo
+        modalidad (str): Modalidad del ciclo
+        costo (float): Costo del ciclo
+        fecha_inicio (str): Fecha de inicio en formato YYYY-MM-DD
+        fecha_fin (str): Fecha de fin en formato YYYY-MM-DD
+    Returns:
+        bool: True si se creó exitosamente, False en caso contrario
+    """
+    try:
+        # Validar datos antes de enviar
+        es_valido, errores = validar_datos_ciclo(
+            nombre, modalidad, costo, fecha_inicio, fecha_fin
+        )
 
-        Returns:
-            bool: True si se agregó exitosamente, False en caso contrario
-        """
-        try:
-            # Implementar lógica para agregar ciclo a la base de datos
-            # Esta función se puede implementar cuando se necesite
-            pass
-        except Exception as e:
-            print(f"❌ Error al agregar ciclo: {e}")
+        if not es_valido:
+            print(f"❌ Datos inválidos para crear ciclo: {errores}")
             return False
 
-    @staticmethod
-    def editar_ciclo(id_ciclo, nombre, modalidad, costo, fecha_inicio, fecha_fin):
-        """
-        Editar un ciclo existente
-
-        Args:
-            id_ciclo (int): ID del ciclo a editar
-            nombre (str): Nuevo nombre del ciclo
-            modalidad (str): Nueva modalidad del ciclo
-            costo (float): Nuevo costo del ciclo
-            fecha_inicio (str): Nueva fecha de inicio
-            fecha_fin (str): Nueva fecha de fin
-
-        Returns:
-            bool: True si se editó exitosamente, False en caso contrario
-        """
-        try:
-            # Implementar lógica para editar ciclo en la base de datos
-            # Esta función se puede implementar cuando se necesite
-            pass
-        except Exception as e:
-            print(f"❌ Error al editar ciclo: {e}")
+        # Validar que la sede existe
+        if not verificar_sede_existe(id_sede):
+            print(f"❌ La sede con ID {id_sede} no existe")
             return False
 
-    @staticmethod
-    def eliminar_ciclo(id_ciclo):
+        # Preparar parámetros para el stored procedure
+        parametros = [
+            nombre.strip(),
+            modalidad,
+            float(costo),
+            fecha_inicio,
+            fecha_fin,
+            int(id_sede)
+        ]
+
+        # Ejecutar el stored procedure
+        ejecutar_procedimiento('sp_crear_ciclo_programado', parametros)
+
+        print(f"✅ Ciclo '{nombre}' creado exitosamente para la sede {id_sede}")
+        return True
+
+    except Exception as e:
+        print(f"❌ Error al agregar ciclo: {e}")
+        return False
+
+def editar_ciclo(id_ciclo, nombre, modalidad, costo, fecha_inicio, fecha_fin):
+    """
+    Editar un ciclo programado existente
+    Args:
+        id_ciclo (int): ID del ciclo a editar
+        nombre (str): Nuevo nombre del ciclo
+        modalidad (str): Nueva modalidad del ciclo
+        costo (float): Nuevo costo del ciclo
+        fecha_inicio (str): Nueva fecha de inicio en formato YYYY-MM-DD
+        fecha_fin (str): Nueva fecha de fin en formato YYYY-MM-DD
+    Returns:
+        bool: True si se editó exitosamente, False en caso contrario
+    """
+    try:
+        # Validar que el ciclo existe
+        ciclo_existente = obtener_ciclo_por_id(id_ciclo)
+        if not ciclo_existente:
+            print(f"❌ El ciclo con ID {id_ciclo} no existe")
+            return False
+
+        # Validar datos antes de enviar
+        es_valido, errores = validar_datos_ciclo(
+            nombre, modalidad, costo, fecha_inicio, fecha_fin
+        )
+
+        if not es_valido:
+            print(f"❌ Datos inválidos para editar ciclo: {errores}")
+            return False
+
+        # Query para actualizar el ciclo
+        query = """
+            UPDATE ciclos_programados 
+            SET nombre_ciclo = %s, modalidad = %s, costo = %s, 
+                fecha_inicio = %s, fecha_fin = %s
+            WHERE id_ciclo = %s
         """
-        Eliminar un ciclo
+
+        # Preparar parámetros
+        parametros = [
+            nombre.strip(),
+            modalidad,
+            float(costo),
+            fecha_inicio,
+            fecha_fin,
+            int(id_ciclo)
+        ]
+
+        # Ejecutar la actualización
+        ejecutar_modificacion('UPDATE ciclos_programados SET nombre_ciclo = %s, modalidad = %s, costo = %s, fecha_inicio = %s, fecha_fin = %s WHERE id_ciclo = %s', parametros)
+
+        print(f"✅ Ciclo con ID {id_ciclo} editado exitosamente")
+        return True
+
+    except Exception as e:
+        print(f"❌ Error al editar ciclo: {e}")
+        return False
+
+def obtener_todos_los_ciclos():
+    """
+    Obtener todos los ciclos programados para el combobox de selección
+    Returns:
+        list: Lista de tuplas con (id_ciclo, nombre_ciclo)
+    """
+    try:
+        query = """
+            SELECT id_ciclo, nombre_ciclo
+            FROM ciclos_programados
+            ORDER BY nombre_ciclo
+        """
 
         resultados = ejecutar_select(query, ())
         return resultados if resultados else []

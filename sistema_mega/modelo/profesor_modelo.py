@@ -1,62 +1,72 @@
 from sistema_mega.database.conexion import *
 
-def ver_grupos_asignados():
-    consulta = """
+# aqui creas la logica osea usas las funciones de la conexion.py
+from sistema_mega.database.conexion import ejecutar_select
+
+
+def obtener_grupos_asignados(id_usuario):
+    """Obtiene los grupos asignados al profesor mediante su id_usuario"""
+    query = """
     SELECT 
-        gpc.id_grupo,
-        gpc.nombre_grupo,
-        c.nombre_curso,
+        cp.nombre_ciclo AS ciclo,
+        cp.modalidad,
+        c.nombre_curso AS curso,
         cc.dia,
-        cc.hora_inicio,
-        cc.hora_fin
-    FROM grupos_por_ciclo gpc
-    JOIN ciclos_cursos cc ON gpc.id_cc = cc.id_cc
-    JOIN cursos c ON cc.id_curso = c.id_curso
-    ORDER BY gpc.id_grupo;
+        TIME_FORMAT(cc.hora_inicio, '%H:%i') AS hora_inicio,
+        TIME_FORMAT(cc.hora_fin, '%H:%i') AS hora_fin,
+        gpc.nombre_grupo AS grupo
+    FROM 
+        usuarios u
+        JOIN profesores p ON u.id_usuario = p.id_usuario
+        JOIN ciclos_cursos cc ON p.id_profesor = cc.id_profesor
+        JOIN ciclos_programados cp ON cc.id_ciclo = cp.id_ciclo
+        JOIN cursos c ON cc.id_curso = c.id_curso
+        JOIN ciclos_cursos_grupos ccg ON cc.id_cc = ccg.id_cc
+        JOIN grupos_por_ciclo gpc ON ccg.id_grupo = gpc.id_grupo
+    WHERE 
+        u.id_usuario = %s
+    ORDER BY 
+        cp.nombre_ciclo, gpc.nombre_grupo
     """
+    return ejecutar_select(query, (id_usuario,))
 
-    resultados = ejecutar_select(consulta)
 
-    if not resultados:
-        print("No hay grupos asignados.")
-        return
-
-    print("Grupos asignados:")
-    for grupo in resultados:
-        id_grupo = grupo[0]
-        nombre_grupo = grupo[1]
-        nombre_profesor = grupo[2]
-        nombre_curso = grupo[3]
-        dia = grupo[4]
-        hora_inicio = grupo[5]
-        hora_fin = grupo[6]
-
-        print(f"Grupo {nombre_grupo} | Profesor: {nombre_profesor} | Curso: {nombre_curso} | Día: {dia} | {hora_inicio} - {hora_fin}")
-
-def ver_asistencias(id_profesor):
-    consulta = f"""
+def obtener_asistencias(id_usuario, fecha_inicio=None, fecha_fin=None):
+    """Obtiene las asistencias de los grupos del profesor"""
+    query = """
     SELECT 
-        ap.id_asistencia,
-        CONCAT(p.nombre, ' ', p.ap_paterno, ' ', p.ap_materno) AS nombre_profesor,
-        ap.fecha,
-        ap.estado
-    FROM asistencias ap
-    JOIN profesores p ON ap.id_profesor = p.id_profesor
-    WHERE p.id_profesor = {id_profesor}
-    ORDER BY ap.fecha DESC;
+        cp.nombre_ciclo AS ciclo,
+        cp.modalidad,
+        gpc.nombre_grupo AS grupo,
+        c.nombre_curso AS curso,
+        DATE_FORMAT(a.fecha, '%Y-%m-%d %H:%i:%s') AS fecha,
+        a.estado
+    FROM 
+        usuarios u
+        JOIN profesores p ON u.id_usuario = p.id_usuario
+        JOIN asistencias a ON p.id_profesor = a.id_profesor
+        JOIN ciclos_cursos cc ON a.id_profesor = cc.id_profesor
+        JOIN ciclos_programados cp ON cc.id_ciclo = cp.id_ciclo
+        JOIN cursos c ON cc.id_curso = c.id_curso
+        JOIN ciclos_cursos_grupos ccg ON cc.id_cc = ccg.id_cc
+        JOIN grupos_por_ciclo gpc ON ccg.id_grupo = gpc.id_grupo
+    WHERE 
+        u.id_usuario = %s
     """
+    params = [id_usuario]
 
-    resultados = ejecutar_select(consulta)
+    # Verificación más robusta de los parámetros de fecha
+    if fecha_inicio and fecha_fin and fecha_inicio.strip() and fecha_fin.strip():
+        query += " AND a.fecha BETWEEN %s AND %s"
+        params.extend([fecha_inicio.strip(), fecha_fin.strip()])
+    elif (fecha_inicio and fecha_inicio.strip()) or (fecha_fin and fecha_fin.strip()):
+        # Si solo una fecha está completa, no aplicar filtro
+        pass
 
-    if not resultados:
-        print(f"No hay asistencias registradas para el profesor con ID {id_profesor}.")
-        return
+    query += " ORDER BY a.fecha DESC"
 
-    print(f"Asistencias del profesor con ID {id_profesor}:")
-    for fila in resultados:
-        id_asistencia = fila[0]
-        nombre_profesor = fila[1]
-        fecha = fila[2]
-        estado = fila[3]
+    # Debug: Imprimir consulta y parámetros (opcional, para diagnóstico)
+    print("Consulta SQL:", query)
+    print("Parámetros:", params)
 
-        print(f"Asistencia #{id_asistencia} | Profesor: {nombre_profesor} | Fecha: {fecha} | Estado: {estado}")
+    return ejecutar_select(query, tuple(params)) or []
