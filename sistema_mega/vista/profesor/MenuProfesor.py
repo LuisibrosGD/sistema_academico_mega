@@ -1,4 +1,6 @@
 import tkinter as tk
+from tkinter import ttk
+from sistema_mega.modelo.profesor_modelo import *
 
 
 class MenuProfesor(tk.Toplevel):
