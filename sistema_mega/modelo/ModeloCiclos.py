@@ -57,23 +57,44 @@ class ModeloCiclos:
         """
         errores = []
 
-        if not nombre or not nombre.strip():
-            errores.append("El nombre del ciclo es obligatorio")
+    # Validar nombre
+    if not nombre or not nombre.strip():
+        errores.append("El nombre del ciclo es obligatorio")
+    elif len(nombre.strip()) < 3:
+        errores.append("El nombre del ciclo debe tener al menos 3 caracteres")
+    elif len(nombre.strip()) > 100:
+        errores.append("El nombre del ciclo no puede exceder 100 caracteres")
 
-        if not modalidad or not modalidad.strip():
-            errores.append("La modalidad es obligatoria")
+    # Validar modalidad
+    modalidades_validas = ['Presencial', 'Virtual', 'Híbrida']
+    if not modalidad or modalidad not in modalidades_validas:
+        errores.append(f"La modalidad debe ser una de: {', '.join(modalidades_validas)}")
 
-        if costo is None or costo < 0:
-            errores.append("El costo debe ser un valor positivo")
+    # Validar costo
+    try:
+        costo_float = float(costo)
+        if costo_float <= 0:
+            errores.append("El costo debe ser mayor a 0")
+        elif costo_float > 99999999.99:
+            errores.append("El costo no puede exceder 99,999,999.99")
+    except (ValueError, TypeError):
+        errores.append("El costo debe ser un número válido")
 
-        if not fecha_inicio or not fecha_inicio.strip():
-            errores.append("La fecha de inicio es obligatoria")
+    # Validar fechas
+    try:
+        fecha_inicio_obj = datetime.strptime(fecha_inicio, '%Y-%m-%d').date()
+        fecha_fin_obj = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
+        fecha_actual = datetime.now().date()
 
-        if not fecha_fin or not fecha_fin.strip():
-            errores.append("La fecha de fin es obligatoria")
+        # Para edición, permitir fechas pasadas si ya están en el pasado
+        # pero validar que la fecha de fin sea posterior a la de inicio
+        if fecha_fin_obj <= fecha_inicio_obj:
+            errores.append("La fecha de fin debe ser posterior a la fecha de inicio")
 
-        # Validar formato de fechas (implementar según necesidades)
-        # Aquí se pueden agregar más validaciones específicas
+        # Validar que el ciclo no sea demasiado corto (mínimo 1 día)
+        diferencia_dias = (fecha_fin_obj - fecha_inicio_obj).days
+        if diferencia_dias < 1:
+            errores.append("El ciclo debe tener una duración mínima de 1 día")
 
         return errores
 
@@ -130,40 +151,152 @@ class ModeloCiclos:
         """
         Eliminar un ciclo
 
-        Args:
-            id_ciclo (int): ID del ciclo a eliminar
+        resultados = ejecutar_select(query, ())
+        return resultados if resultados else []
 
-        Returns:
-            bool: True si se eliminó exitosamente, False en caso contrario
+    except Exception as e:
+        print(f"❌ Error al obtener todos los ciclos: {e}")
+        raise e
+
+def verificar_sede_existe(id_sede):
+    """
+    Verificar si una sede existe
+    Args:
+        id_sede (int): ID de la sede
+    Returns:
+        bool: True si existe, False si no existe
+    """
+    try:
+        query = "SELECT COUNT(*) FROM sedes WHERE id_sede = %s"
+        resultado = ejecutar_select(query, (id_sede,))
+        return resultado[0][0] > 0 if resultado else False
+
+    except Exception as e:
+        print(f"❌ Error al verificar sede: {e}")
+        return False
+
+def verificar_nombre_ciclo_duplicado(nombre, id_sede, id_ciclo_excluir=None):
+    """
+    Verificar si ya existe un ciclo con el mismo nombre en la misma sede
+    Args:
+        nombre (str): Nombre del ciclo
+        id_sede (int): ID de la sede
+        id_ciclo_excluir (int, optional): ID del ciclo a excluir en la validación (para edición)
+    Returns:
+        bool: True si existe duplicado, False si no existe
+    """
+    try:
+        if id_ciclo_excluir:
+            query = """
+                SELECT COUNT(*) FROM ciclos_programados cp
+                INNER JOIN sedes_ciclos sc ON cp.id_ciclo = sc.id_ciclo
+                WHERE UPPER(TRIM(cp.nombre_ciclo)) = UPPER(TRIM(%s))
+                AND sc.id_sede = %s
+                AND cp.id_ciclo != %s
+            """
+            parametros = (nombre, id_sede, id_ciclo_excluir)
+        else:
+            query = """
+                SELECT COUNT(*) FROM ciclos_programados cp
+                INNER JOIN sedes_ciclos sc ON cp.id_ciclo = sc.id_ciclo
+                WHERE UPPER(TRIM(cp.nombre_ciclo)) = UPPER(TRIM(%s))
+                AND sc.id_sede = %s
+            """
+            parametros = (nombre, id_sede)
+
+        resultado = ejecutar_select(query, parametros)
+        return resultado[0][0] > 0 if resultado else False
+
+    except Exception as e:
+        print(f"❌ Error al verificar nombre duplicado: {e}")
+        return False
+
+
+def obtener_estadisticas_ciclos_sede(id_sede):
+    """
+    Obtener estadísticas de ciclos para una sede
+    Args:
+        id_sede (int): ID de la sede
+    Returns:
+        dict: Diccionario con estadísticas
+    """
+    try:
+        query = """
+            SELECT 
+                COUNT(*) as total_ciclos,
+                SUM(CASE WHEN cp.estado = 'en curso' THEN 1 ELSE 0 END) as ciclos_activos,
+                SUM(CASE WHEN cp.estado = 'finalizado' THEN 1 ELSE 0 END) as ciclos_finalizados,
+                AVG(cp.costo) as costo_promedio
+            FROM ciclos_programados cp
+            INNER JOIN sedes_ciclos sc ON cp.id_ciclo = sc.id_ciclo
+            WHERE sc.id_sede = %s
         """
-        try:
-            # Implementar lógica para eliminar ciclo de la base de datos
-            # Esta función se puede implementar cuando se necesite
-            pass
-        except Exception as e:
-            print(f"❌ Error al eliminar ciclo: {e}")
-            return False
 
-    @staticmethod
-    def obtener_estadisticas_ciclos(id_sede=None):
-        """
-        Obtener estadísticas de ciclos
+        resultado = ejecutar_select(query, (id_sede,))
 
-        Args:
-            id_sede (int, optional): ID de la sede. Si no se especifica, obtiene estadísticas globales
-
-        Returns:
-            dict: Diccionario con estadísticas de ciclos
-        """
-        try:
-            # Implementar lógica para obtener estadísticas
-            # Esta función se puede implementar cuando se necesite
+        if resultado:
+            fila = resultado[0]
+            return {
+                'total_ciclos': fila[0] or 0,
+                'ciclos_activos': fila[1] or 0,
+                'ciclos_finalizados': fila[2] or 0,
+                'costo_promedio': float(fila[3]) if fila[3] else 0.0
+            }
+        else:
             return {
                 'total_ciclos': 0,
                 'ciclos_activos': 0,
                 'ciclos_finalizados': 0,
-                'ciclos_programados': 0
+                'costo_promedio': 0.0
             }
-        except Exception as e:
-            print(f"❌ Error al obtener estadísticas de ciclos: {e}")
-            return {}
+
+    except Exception as e:
+        print(f"❌ Error al obtener estadísticas: {e}")
+        return {
+            'total_ciclos': 0,
+            'ciclos_activos': 0,
+            'ciclos_finalizados': 0,
+            'costo_promedio': 0.0
+        }
+
+def obtener_modalidades_disponibles():
+    """
+    Obtener las modalidades disponibles para los ciclos
+    Returns:
+        list: Lista de modalidades
+    """
+    return ['Presencial', 'Virtual', 'Híbrida']
+
+def formatear_fecha_para_display(fecha):
+    """
+    Formatear fecha para mostrar en la interfaz
+    Args:
+        fecha (date): Fecha a formatear
+    Returns:
+        str: Fecha formateada
+    """
+    try:
+        if isinstance(fecha, str):
+            fecha_obj = datetime.strptime(fecha, '%Y-%m-%d').date()
+        else:
+            fecha_obj = fecha
+
+        return fecha_obj.strftime('%d/%m/%Y')
+
+    except Exception as e:
+        print(f"❌ Error al formatear fecha: {e}")
+        return str(fecha)
+
+def formatear_costo_para_display(costo):
+    """
+    Formatear costo para mostrar en la interfaz
+    Args:
+        costo (float): Costo a formatear
+    Returns:
+        str: Costo formateado
+    """
+    try:
+        return f"S/. {float(costo):,.2f}"
+    except Exception as e:
+        print(f"❌ Error al formatear costo: {e}")
+        return f"S/. {costo}"

@@ -1,357 +1,865 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-from sistema_mega.modelo.ModeloCiclos import ModeloCiclos
+from tkcalendar import DateEntry
+from datetime import datetime
+from sistema_mega.modelo.ModeloCiclos import *
+from sistema_mega.vista.administrador.vista_gestionar_grupos import VistaGestionarGrupos
+
+class VentanaEditarCiclo(tk.Toplevel):
+    """Ventana para editar un ciclo existente"""
+
+    def __init__(self, parent, ciclo_data, callback_actualizar=None):
+        super().__init__(parent)
+        self.parent = parent
+        self.ciclo_data = ciclo_data  # Datos del ciclo a editar
+        self.callback_actualizar = callback_actualizar
+
+        self.title("Editar Ciclo Programado")
+        self.geometry("500x650")
+        self.configure(bg="#f0f0f0")
+        self.resizable(False, False)
+
+        # Hacer la ventana modal
+        self.transient(parent)
+        self.grab_set()
+
+        # Centrar la ventana
+        self.center_window()
+
+        # Configurar el protocolo de cierre
+        self.protocol("WM_DELETE_WINDOW", self.cancelar)
+
+        self.crear_widgets()
+        self.cargar_datos_ciclo()
+
+    def center_window(self):
+        """Centrar la ventana en la pantalla"""
+        self.update_idletasks()
+        width = self.winfo_width()
+        height = self.winfo_height()
+        x = (self.winfo_screenwidth() // 2) - (width // 2)
+        y = (self.winfo_screenheight() // 2) - (height // 2)
+        self.geometry(f'{width}x{height}+{x}+{y}')
+
+    def crear_widgets(self):
+        """Crear los widgets de la ventana"""
+        # Frame principal
+        main_frame = ttk.Frame(self, padding="30")
+        main_frame.pack(fill=tk.BOTH, expand=True)
+
+        # Título
+        title_label = ttk.Label(main_frame, text="Editar Ciclo Programado",
+                                font=("Arial", 18, "bold"))
+        title_label.pack(pady=(0, 30))
+
+        # Frame para los campos
+        fields_frame = ttk.Frame(main_frame)
+        fields_frame.pack(fill=tk.X, pady=(0, 20))
+
+        # Información del ciclo (solo lectura)
+        info_frame = ttk.LabelFrame(fields_frame, text="Información del Ciclo", padding="10")
+        info_frame.pack(fill=tk.X, pady=(0, 15))
+
+        # ID del ciclo (solo lectura)
+        ttk.Label(info_frame, text="ID del ciclo:",
+                  font=("Arial", 10, "bold")).pack(anchor=tk.W)
+        self.label_id = ttk.Label(info_frame, text="", font=("Arial", 10))
+        self.label_id.pack(anchor=tk.W, pady=(0, 10))
+
+        # Nombre del ciclo
+        ttk.Label(fields_frame, text="Nombre del ciclo:",
+                  font=("Arial", 12, "bold")).pack(anchor=tk.W, pady=(0, 5))
+        self.entry_nombre = ttk.Entry(fields_frame, font=("Arial", 12))
+        self.entry_nombre.pack(fill=tk.X, pady=(0, 15))
+
+        # Modalidad
+        ttk.Label(fields_frame, text="Modalidad:",
+                  font=("Arial", 12, "bold")).pack(anchor=tk.W, pady=(0, 5))
+        self.combo_modalidad = ttk.Combobox(fields_frame,
+                                            values=["Presencial", "Virtual", "Híbrida"],
+                                            state="readonly",
+                                            font=("Arial", 12))
+        self.combo_modalidad.pack(fill=tk.X, pady=(0, 15))
+
+        # Costo
+        ttk.Label(fields_frame, text="Costo (S/.):",
+                  font=("Arial", 12, "bold")).pack(anchor=tk.W, pady=(0, 5))
+        self.entry_costo = ttk.Entry(fields_frame, font=("Arial", 12))
+        self.entry_costo.pack(fill=tk.X, pady=(0, 15))
+
+        # Fecha de inicio
+        ttk.Label(fields_frame, text="Fecha de inicio:",
+                  font=("Arial", 12, "bold")).pack(anchor=tk.W, pady=(0, 5))
+        self.date_inicio = DateEntry(fields_frame,
+                                     width=12,
+                                     background='darkblue',
+                                     foreground='white',
+                                     borderwidth=2,
+                                     font=("Arial", 12),
+                                     date_pattern='yyyy-mm-dd')
+        self.date_inicio.pack(fill=tk.X, pady=(0, 15))
+
+        # Fecha de fin
+        ttk.Label(fields_frame, text="Fecha de fin:",
+                  font=("Arial", 12, "bold")).pack(anchor=tk.W, pady=(0, 5))
+        self.date_fin = DateEntry(fields_frame,
+                                  width=12,
+                                  background='darkblue',
+                                  foreground='white',
+                                  borderwidth=2,
+                                  font=("Arial", 12),
+                                  date_pattern='yyyy-mm-dd')
+        self.date_fin.pack(fill=tk.X, pady=(0, 15))
+
+        # Frame para botones
+        buttons_frame = ttk.Frame(main_frame)
+        buttons_frame.pack(fill=tk.X, pady=(20, 0))
+
+        # Botón Guardar
+        self.btn_guardar = ttk.Button(buttons_frame,
+                                      text="Guardar Cambios",
+                                      command=self.guardar_cambios,
+                                      style="Accent.TButton")
+        self.btn_guardar.pack(side=tk.LEFT, padx=(0, 10))
+
+        # Botón Cancelar
+        self.btn_cancelar = ttk.Button(buttons_frame,
+                                       text="Cancelar",
+                                       command=self.cancelar)
+        self.btn_cancelar.pack(side=tk.LEFT)
+
+        # Configurar estilos
+        self.configurar_estilos()
+
+    def configurar_estilos(self):
+        """Configurar estilos para la ventana"""
+        style = ttk.Style()
+        style.configure("Accent.TButton", font=("Arial", 12, "bold"))
+
+    def cargar_datos_ciclo(self):
+        """Cargar los datos del ciclo en los campos"""
+        if not self.ciclo_data:
+            return
+
+        try:
+            # Extraer datos del ciclo
+            id_ciclo = self.ciclo_data[0]
+            nombre = self.ciclo_data[1]
+            modalidad = self.ciclo_data[2]
+            costo = self.ciclo_data[3]
+            fecha_inicio = self.ciclo_data[4]
+            fecha_fin = self.ciclo_data[5]
+
+            # Llenar los campos
+            self.label_id.config(text=f"#{id_ciclo}")
+            self.entry_nombre.insert(0, nombre)
+            self.combo_modalidad.set(modalidad)
+            self.entry_costo.insert(0, str(costo))
+
+            # Configurar fechas
+            if isinstance(fecha_inicio, str):
+                fecha_inicio_obj = datetime.strptime(fecha_inicio, '%Y-%m-%d').date()
+            else:
+                fecha_inicio_obj = fecha_inicio
+
+            if isinstance(fecha_fin, str):
+                fecha_fin_obj = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
+            else:
+                fecha_fin_obj = fecha_fin
+
+            self.date_inicio.set_date(fecha_inicio_obj)
+            self.date_fin.set_date(fecha_fin_obj)
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al cargar datos del ciclo: {str(e)}")
+            print(f"❌ Error al cargar datos: {e}")
+
+    def validar_campos(self):
+        """Validar que todos los campos estén completos"""
+        errores = []
+
+        # Validar nombre
+        if not self.entry_nombre.get().strip():
+            errores.append("El nombre del ciclo es obligatorio")
+
+        # Validar modalidad
+        if not self.combo_modalidad.get():
+            errores.append("Debe seleccionar una modalidad")
+
+        # Validar costo
+        try:
+            costo = float(self.entry_costo.get())
+            if costo <= 0:
+                errores.append("El costo debe ser mayor a 0")
+        except ValueError:
+            errores.append("El costo debe ser un número válido")
+
+        # Validar fechas
+        if self.date_fin.get_date() <= self.date_inicio.get_date():
+            errores.append("La fecha de fin debe ser posterior a la fecha de inicio")
+
+        return errores
+
+    def guardar_cambios(self):
+        """Guardar los cambios del ciclo en la base de datos"""
+        try:
+            # Validar campos
+            errores = self.validar_campos()
+            if errores:
+                mensaje_error = "Por favor corrija los siguientes errores:\n\n"
+                mensaje_error += "\n".join(f"• {error}" for error in errores)
+                messagebox.showerror("Errores de validación", mensaje_error)
+                return
+
+            # Obtener datos del formulario
+            id_ciclo = self.ciclo_data[0]
+            nombre = self.entry_nombre.get().strip()
+            modalidad = self.combo_modalidad.get()
+            costo = float(self.entry_costo.get())
+            fecha_inicio = self.date_inicio.get_date().strftime('%Y-%m-%d')
+            fecha_fin = self.date_fin.get_date().strftime('%Y-%m-%d')
+
+            # Confirmar los cambios
+            resultado = messagebox.askyesno("Confirmar cambios",
+                                            f"¿Está seguro que desea guardar los cambios del ciclo '{nombre}'?")
+            if not resultado:
+                return
+
+            # Editar el ciclo
+            exito = editar_ciclo(
+                id_ciclo,
+                nombre,
+                modalidad,
+                costo,
+                fecha_inicio,
+                fecha_fin
+            )
+
+            if exito:
+                messagebox.showinfo("Éxito", "Ciclo editado exitosamente")
+
+                # Llamar callback para actualizar la vista principal
+                if self.callback_actualizar:
+                    self.callback_actualizar()
+
+                self.destroy()
+            else:
+                messagebox.showerror("Error", "No se pudo editar el ciclo")
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al guardar cambios: {str(e)}")
+            print(f"❌ Error al guardar cambios: {e}")
+
+    def cancelar(self):
+        """Cancelar la edición del ciclo"""
+        resultado = messagebox.askyesno("Confirmar",
+                                        "¿Está seguro que desea cancelar?\n"
+                                        "Se perderán los cambios realizados.")
+        if resultado:
+            self.destroy()
 
 
-class CiclosVista:
-    """Vista para manejar la visualización y gestión de ciclos"""
+class VentanaCrearCiclo(tk.Toplevel):
+    """Ventana para crear un nuevo ciclo"""
 
-    def __init__(self, parent_window):
-        self.parent_window = parent_window
-        self.sede_info = None
+    def __init__(self, parent, id_sede, callback_actualizar=None):
+        super().__init__(parent)
+        self.parent = parent
+        self.id_sede = id_sede
+        self.callback_actualizar = callback_actualizar
+
+        self.title("Crear Ciclo Programado")
+        self.geometry("500x600")
+        self.configure(bg="#f0f0f0")
+        self.resizable(False, False)
+
+        # Hacer la ventana modal
+        self.transient(parent)
+        self.grab_set()
+
+        # Centrar la ventana
+        self.center_window()
+
+        # Configurar el protocolo de cierre
+        self.protocol("WM_DELETE_WINDOW", self.cancelar)
+
+        self.crear_widgets()
+
+    def center_window(self):
+        """Centrar la ventana en la pantalla"""
+        self.update_idletasks()
+        width = self.winfo_width()
+        height = self.winfo_height()
+        x = (self.winfo_screenwidth() // 2) - (width // 2)
+        y = (self.winfo_screenheight() // 2) - (height // 2)
+        self.geometry(f'{width}x{height}+{x}+{y}')
+
+    def crear_widgets(self):
+        """Crear los widgets de la ventana"""
+        # Frame principal
+        main_frame = ttk.Frame(self, padding="30")
+        main_frame.pack(fill=tk.BOTH, expand=True)
+
+        # Título
+        title_label = ttk.Label(main_frame, text="Crear Ciclo Programado",
+                                font=("Arial", 18, "bold"))
+        title_label.pack(pady=(0, 30))
+
+        # Frame para los campos
+        fields_frame = ttk.Frame(main_frame)
+        fields_frame.pack(fill=tk.X, pady=(0, 20))
+
+        # Nombre del ciclo
+        ttk.Label(fields_frame, text="Nombre del ciclo:",
+                  font=("Arial", 12, "bold")).pack(anchor=tk.W, pady=(0, 5))
+        self.entry_nombre = ttk.Entry(fields_frame, font=("Arial", 12))
+        self.entry_nombre.pack(fill=tk.X, pady=(0, 15))
+
+        # Modalidad
+        ttk.Label(fields_frame, text="Modalidad:",
+                  font=("Arial", 12, "bold")).pack(anchor=tk.W, pady=(0, 5))
+        self.combo_modalidad = ttk.Combobox(fields_frame,
+                                            values=["Presencial", "Virtual", "Híbrida"],
+                                            state="readonly",
+                                            font=("Arial", 12))
+        self.combo_modalidad.pack(fill=tk.X, pady=(0, 15))
+        self.combo_modalidad.set("Presencial")  # Valor por defecto
+
+        # Costo
+        ttk.Label(fields_frame, text="Costo (S/.):",
+                  font=("Arial", 12, "bold")).pack(anchor=tk.W, pady=(0, 5))
+        self.entry_costo = ttk.Entry(fields_frame, font=("Arial", 12))
+        self.entry_costo.pack(fill=tk.X, pady=(0, 15))
+
+        # Fecha de inicio
+        ttk.Label(fields_frame, text="Fecha de inicio:",
+                  font=("Arial", 12, "bold")).pack(anchor=tk.W, pady=(0, 5))
+        self.date_inicio = DateEntry(fields_frame,
+                                     width=12,
+                                     background='darkblue',
+                                     foreground='white',
+                                     borderwidth=2,
+                                     font=("Arial", 12),
+                                     date_pattern='yyyy-mm-dd',
+                                     mindate=datetime.now().date())
+        self.date_inicio.pack(fill=tk.X, pady=(0, 15))
+
+        # Fecha de fin
+        ttk.Label(fields_frame, text="Fecha de fin:",
+                  font=("Arial", 12, "bold")).pack(anchor=tk.W, pady=(0, 5))
+        self.date_fin = DateEntry(fields_frame,
+                                  width=12,
+                                  background='darkblue',
+                                  foreground='white',
+                                  borderwidth=2,
+                                  font=("Arial", 12),
+                                  date_pattern='yyyy-mm-dd',
+                                  mindate=datetime.now().date())
+        self.date_fin.pack(fill=tk.X, pady=(0, 15))
+
+        # Frame para botones
+        buttons_frame = ttk.Frame(main_frame)
+        buttons_frame.pack(fill=tk.X, pady=(20, 0))
+
+        # Botón Guardar
+        self.btn_guardar = ttk.Button(buttons_frame,
+                                      text="Guardar",
+                                      command=self.guardar_ciclo,
+                                      style="Accent.TButton")
+        self.btn_guardar.pack(side=tk.LEFT, padx=(0, 10))
+
+        # Botón Cancelar
+        self.btn_cancelar = ttk.Button(buttons_frame,
+                                       text="Cancelar",
+                                       command=self.cancelar)
+        self.btn_cancelar.pack(side=tk.LEFT)
+
+        # Configurar estilos
+        self.configurar_estilos()
+
+    def configurar_estilos(self):
+        """Configurar estilos para la ventana"""
+        style = ttk.Style()
+        style.configure("Accent.TButton", font=("Arial", 12, "bold"))
+
+    def validar_campos(self):
+        """Validar que todos los campos estén completos"""
+        errores = []
+
+        # Validar nombre
+        if not self.entry_nombre.get().strip():
+            errores.append("El nombre del ciclo es obligatorio")
+
+        # Validar modalidad
+        if not self.combo_modalidad.get():
+            errores.append("Debe seleccionar una modalidad")
+
+        # Validar costo
+        try:
+            costo = float(self.entry_costo.get())
+            if costo <= 0:
+                errores.append("El costo debe ser mayor a 0")
+        except ValueError:
+            errores.append("El costo debe ser un número válido")
+
+        # Validar fechas
+        if self.date_fin.get_date() <= self.date_inicio.get_date():
+            errores.append("La fecha de fin debe ser posterior a la fecha de inicio")
+
+        return errores
+
+    def guardar_ciclo(self):
+        """Guardar el ciclo en la base de datos"""
+        try:
+            # Validar campos
+            errores = self.validar_campos()
+            if errores:
+                mensaje_error = "Por favor corrija los siguientes errores:\n\n"
+                mensaje_error += "\n".join(f"• {error}" for error in errores)
+                messagebox.showerror("Errores de validación", mensaje_error)
+                return
+
+            # Obtener datos del formulario
+            nombre = self.entry_nombre.get().strip()
+            modalidad = self.combo_modalidad.get()
+            costo = float(self.entry_costo.get())
+            fecha_inicio = self.date_inicio.get_date().strftime('%Y-%m-%d')
+            fecha_fin = self.date_fin.get_date().strftime('%Y-%m-%d')
+
+            # Crear el ciclo
+            exito = agregar_ciclo(
+                self.id_sede,
+                nombre,
+                modalidad,
+                costo,
+                fecha_inicio,
+                fecha_fin
+            )
+
+            if exito:
+                messagebox.showinfo("Éxito", "Ciclo creado exitosamente")
+
+                # Llamar callback para actualizar la vista principal
+                if self.callback_actualizar:
+                    self.callback_actualizar()
+
+                self.destroy()
+            else:
+                messagebox.showerror("Error", "No se pudo crear el ciclo")
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al guardar el ciclo: {str(e)}")
+            print(f"❌ Error al guardar ciclo: {e}")
+
+    def cancelar(self):
+        """Cancelar la creación del ciclo"""
+        resultado = messagebox.askyesno("Confirmar",
+                                        "¿Está seguro que desea cancelar?\n"
+                                        "Se perderán los datos ingresados.")
+        if resultado:
+            self.destroy()
+
+
+class CiclosVista(tk.Toplevel):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.parent = parent
+        self.title("Gestionar Ciclos")
+        self.geometry("1200x800")
+        self.configure(bg="#f0f0f0")
+
+        # Configurar el protocolo de cierre
+        self.protocol("WM_DELETE_WINDOW", self.on_closing)
+
+        # Hacer que la ventana sea modal
+        self.transient(parent)
+        self.grab_set()
+
+        # Variables
         self.ciclos_data = []
+        self.ciclo_seleccionado = None
+        self.sede_info = None
+
+        # Configurar el grid principal
+        self.rowconfigure(0, weight=1)
+        self.columnconfigure(0, weight=1)
+
+        self.configurar_estilos()
+        self.crear_widgets()
+
+    def configurar_estilos(self):
+        """Configurar los estilos de la interfaz"""
+        self.estilo = ttk.Style()
+        self.estilo.theme_use("clam")
+
+        # Estilo para el frame principal
+        self.estilo.configure("framePrincipal.TFrame",
+                              background="#f0f0f0")
+
+        # Estilo para el título
+        self.estilo.configure("tituloCiclos.TLabel",
+                              background="#f0f0f0",
+                              foreground="#333333",
+                              font=("Arial", 24, "bold"))
+
+        # Estilo para las tarjetas de ciclos
+        self.estilo.configure("cicloCard.TFrame",
+                              background="#4a90e2",
+                              relief="raised",
+                              borderwidth=2)
+
+        # Estilo para tarjeta seleccionada
+        self.estilo.configure("cicloCardSeleccionada.TFrame",
+                              background="#2c5282",
+                              relief="raised",
+                              borderwidth=3)
+
+        # Estilo para el texto de los ciclos
+        self.estilo.configure("cicloNombre.TLabel",
+                              background="#4a90e2",
+                              foreground="white",
+                              font=("Arial", 14, "bold"))
+
+        self.estilo.configure("cicloInfo.TLabel",
+                              background="#4a90e2",
+                              foreground="white",
+                              font=("Arial", 12))
+
+        # Estilo para el texto de ciclo seleccionado
+        self.estilo.configure("cicloNombreSeleccionado.TLabel",
+                              background="#2c5282",
+                              foreground="white",
+                              font=("Arial", 14, "bold"))
+
+        self.estilo.configure("cicloInfoSeleccionado.TLabel",
+                              background="#2c5282",
+                              foreground="white",
+                              font=("Arial", 12))
+
+        # Estilo para botones principales
+        self.estilo.configure("botonCrear.TButton",
+                              background="#28a745",
+                              foreground="white",
+                              font=("Arial", 12, "bold"),
+                              borderwidth=0,
+                              relief="flat")
+        self.estilo.map("botonCrear.TButton",
+                        background=[("pressed", "#218838"), ("active", "#34ce57")])
+
+        self.estilo.configure("botonEditar.TButton",
+                              background="#ffc107",
+                              foreground="black",
+                              font=("Arial", 12, "bold"),
+                              borderwidth=0,
+                              relief="flat")
+        self.estilo.map("botonEditar.TButton",
+                        background=[("pressed", "#e0a800"), ("active", "#ffcd39")])
+
+        # Estilo para botón Ver Grupos
+        self.estilo.configure("botonVerGrupos.TButton",
+                              background="#17a2b8",
+                              foreground="white",
+                              font=("Arial", 12, "bold"),
+                              borderwidth=0,
+                              relief="flat")
+        self.estilo.map("botonVerGrupos.TButton",
+                        background=[("pressed", "#138496"), ("active", "#1fc8e3")])
+
+        # Estilo para botón de regresar
+        self.estilo.configure("botonRegresar.TButton",
+                              background="#6c757d",
+                              foreground="white",
+                              font=("Arial", 12, "bold"),
+                              borderwidth=0,
+                              relief="flat")
+        self.estilo.map("botonRegresar.TButton",
+                        background=[("pressed", "#5a6268"), ("active", "#78848b")])
+
+    def crear_widgets(self):
+        """Crear todos los widgets de la interfaz"""
+        # Frame principal
+        self.frame_principal = ttk.Frame(self, style="framePrincipal.TFrame")
+        self.frame_principal.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
+
+        # Configurar grid del frame principal
+        self.frame_principal.rowconfigure(1, weight=1)
+        self.frame_principal.columnconfigure(0, weight=1)
+
+        # Crear header
+        self.crear_header()
+
+        # Crear área de ciclos
+        self.crear_area_ciclos()
+
+        # Crear botones de acción
+        self.crear_botones_accion()
+
+        # Crear botón de regresar
+        self.crear_boton_regresar()
+
+    def crear_header(self):
+        """Crear el header con título"""
+        header_frame = ttk.Frame(self.frame_principal, style="framePrincipal.TFrame")
+        header_frame.grid(row=0, column=0, sticky="ew", pady=(0, 20))
+        header_frame.columnconfigure(0, weight=1)
+
+        # Título
+        titulo_label = ttk.Label(header_frame,
+                                 text="Ciclos Programados",
+                                 style="tituloCiclos.TLabel")
+        titulo_label.grid(row=0, column=0, sticky="w", pady=(0, 10))
+
+    def crear_area_ciclos(self):
+        """Crear el área scrollable para mostrar los ciclos"""
+        # Frame contenedor con scrollbar
+        container_frame = ttk.Frame(self.frame_principal, style="framePrincipal.TFrame")
+        container_frame.grid(row=1, column=0, sticky="nsew", pady=(0, 20))
+        container_frame.rowconfigure(0, weight=1)
+        container_frame.columnconfigure(0, weight=1)
+
+        # Canvas para scroll
+        self.canvas = tk.Canvas(container_frame, bg="#f0f0f0", highlightthickness=0)
+        self.canvas.grid(row=0, column=0, sticky="nsew")
+
+        # Scrollbar
+        scrollbar = ttk.Scrollbar(container_frame, orient="vertical", command=self.canvas.yview)
+        scrollbar.grid(row=0, column=1, sticky="ns")
+        self.canvas.configure(yscrollcommand=scrollbar.set)
+
+        # Frame interno del canvas
+        self.frame_ciclos = ttk.Frame(self.canvas, style="framePrincipal.TFrame")
+        self.canvas_window = self.canvas.create_window((0, 0), window=self.frame_ciclos, anchor="nw")
+
+        # Configurar el scroll
+        self.frame_ciclos.bind("<Configure>", self.on_frame_configure)
+        self.canvas.bind("<Configure>", self.on_canvas_configure)
+
+        # Bind del mouse wheel
+        self.canvas.bind_all("<MouseWheel>", self.on_mousewheel)
+
+    def crear_botones_accion(self):
+        """Crear los botones de acción (Crear, Editar y Ver Grupos)"""
+        botones_frame = ttk.Frame(self.frame_principal, style="framePrincipal.TFrame")
+        botones_frame.grid(row=2, column=0, sticky="ew", pady=(0, 10))
+        botones_frame.columnconfigure(0, weight=1)
+        botones_frame.columnconfigure(1, weight=1)
+        botones_frame.columnconfigure(2, weight=1)
+
+        # Botón Crear ciclo
+        self.boton_crear = ttk.Button(botones_frame,
+                                      text="Crear ciclo",
+                                      style="botonCrear.TButton",
+                                      command=self.crear_ciclo)
+        self.boton_crear.grid(row=0, column=0, sticky="ew", padx=(0, 5), pady=5)
+
+        # Botón Editar ciclo
+        self.boton_editar = ttk.Button(botones_frame,
+                                       text="Editar ciclo",
+                                       style="botonEditar.TButton",
+                                       command=self.editar_ciclo)
+        self.boton_editar.grid(row=0, column=1, sticky="ew", padx=(5, 5), pady=5)
+
+        # Botón Ver Grupos
+        self.boton_ver_grupos = ttk.Button(botones_frame,
+                                           text="Ver grupos",
+                                           style="botonVerGrupos.TButton",
+                                           command=self.ver_grupos)
+        self.boton_ver_grupos.grid(row=0, column=2, sticky="ew", padx=(5, 0), pady=5)
+
+    def crear_boton_regresar(self):
+        """Crear el botón de regresar"""
+        self.boton_regresar = ttk.Button(self.frame_principal,
+                                         text="Regresar a Sedes Disponibles",
+                                         style="botonRegresar.TButton",
+                                         command=self.regresar_sedes)
+        self.boton_regresar.grid(row=3, column=0, sticky="w", pady=(10, 0))
+
+    def on_frame_configure(self, event):
+        """Callback para configurar el scroll cuando el frame cambia de tamaño"""
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+
+    def on_canvas_configure(self, event):
+        """Callback para configurar el canvas cuando cambia de tamaño"""
+        canvas_width = event.width
+        self.canvas.itemconfig(self.canvas_window, width=canvas_width)
+
+    def on_mousewheel(self, event):
+        """Callback para manejar el scroll con la rueda del mouse"""
+        self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
     def mostrar_ciclos_sede(self, sede_info):
         """
-        Mostrar ventana con los ciclos de una sede específica
+        Mostrar ciclos de una sede específica
 
         Args:
             sede_info (tuple): Información de la sede (id, nombre, distrito)
         """
         self.sede_info = sede_info
+        self.title(f"Ciclos Programados - {sede_info[1]}")
+        self.cargar_ciclos()
 
-        try:
-            # Obtener ciclos de la sede
-            self.ciclos_data = ModeloCiclos.obtener_ciclos_por_sede(sede_info[0])
-
-            # Crear y mostrar la ventana
-            self.crear_ventana_ciclos()
-
-        except Exception as e:
-            messagebox.showerror("Error", f"Error al obtener ciclos: {str(e)}")
-            print(f"❌ Error al obtener ciclos: {e}")
-
-    def crear_ventana_ciclos(self):
-        """Crear la ventana principal para mostrar ciclos"""
-        self.ventana_ciclos = tk.Toplevel(self.parent_window)
-        self.ventana_ciclos.title(f"Ciclos de {self.sede_info[1]}")
-        self.ventana_ciclos.geometry("1000x700")
-        self.ventana_ciclos.configure(bg="#f0f0f0")
-        self.ventana_ciclos.resizable(True, True)
-
-        # Centrar ventana
-        self.ventana_ciclos.transient(self.parent_window)
-        self.ventana_ciclos.grab_set()
-
-        # Configurar grid principal
-        self.ventana_ciclos.rowconfigure(1, weight=1)
-        self.ventana_ciclos.columnconfigure(0, weight=1)
-
-        # Crear componentes
-        self.crear_header_ciclos()
-        self.crear_area_contenido_ciclos()
-        self.crear_botones_accion_ciclos()
-
-    def crear_header_ciclos(self):
-        """Crear el header con información de la sede"""
-        header_frame = ttk.Frame(self.ventana_ciclos)
-        header_frame.grid(row=0, column=0, sticky="ew", padx=20, pady=20)
-        header_frame.columnconfigure(0, weight=1)
-
-        # Título principal
-        titulo_label = ttk.Label(header_frame,
-                                 text=f"Ciclos Programados - {self.sede_info[1]}",
-                                 font=("Arial", 18, "bold"))
-        titulo_label.grid(row=0, column=0, sticky="w")
-
-        # Subtítulo con distrito
-        subtitulo_label = ttk.Label(header_frame,
-                                    text=f"Distrito: {self.sede_info[2]}",
-                                    font=("Arial", 12))
-        subtitulo_label.grid(row=1, column=0, sticky="w", pady=(5, 0))
-
-        # Separador
-        separator = ttk.Separator(header_frame, orient="horizontal")
-        separator.grid(row=2, column=0, sticky="ew", pady=(10, 0))
-
-    def crear_area_contenido_ciclos(self):
-        """Crear el área de contenido para mostrar los ciclos"""
-        contenido_frame = ttk.Frame(self.ventana_ciclos)
-        contenido_frame.grid(row=1, column=0, sticky="nsew", padx=20, pady=(0, 20))
-        contenido_frame.rowconfigure(0, weight=1)
-        contenido_frame.columnconfigure(0, weight=1)
-
-        if not self.ciclos_data:
-            self.mostrar_mensaje_sin_ciclos(contenido_frame)
-        else:
-            self.mostrar_tabla_ciclos(contenido_frame)
-            self.mostrar_estadisticas_ciclos(contenido_frame)
-
-    def mostrar_mensaje_sin_ciclos(self, parent):
-        """Mostrar mensaje cuando no hay ciclos disponibles"""
-        mensaje_frame = ttk.Frame(parent)
-        mensaje_frame.grid(row=0, column=0, sticky="nsew")
-        mensaje_frame.rowconfigure(0, weight=1)
-        mensaje_frame.columnconfigure(0, weight=1)
-
-        # Icono y mensaje
-        no_ciclos_label = ttk.Label(mensaje_frame,
-                                    text="📅 No hay ciclos programados para esta sede",
-                                    font=("Arial", 16))
-        no_ciclos_label.grid(row=0, column=0, pady=50)
-
-        # Mensaje adicional
-        info_label = ttk.Label(mensaje_frame,
-                               text="Los ciclos aparecerán aquí cuando sean programados",
-                               font=("Arial", 12),
-                               foreground="gray")
-        info_label.grid(row=1, column=0, pady=(0, 20))
-
-    def mostrar_tabla_ciclos(self, parent):
-        """Mostrar la tabla con los ciclos"""
-        # Frame para la tabla
-        tabla_frame = ttk.Frame(parent)
-        tabla_frame.grid(row=0, column=0, sticky="nsew", pady=(0, 20))
-        tabla_frame.rowconfigure(0, weight=1)
-        tabla_frame.columnconfigure(0, weight=1)
-
-        # Crear Treeview
-        self.crear_treeview_ciclos(tabla_frame)
-
-        # Insertar datos
-        self.cargar_datos_en_tabla()
-
-    def crear_treeview_ciclos(self, parent):
-        """Crear el Treeview para mostrar los ciclos"""
-        # Definir columnas
-        columnas = ("ID", "Nombre", "Modalidad", "Costo", "Inicio", "Fin", "Estado")
-
-        # Crear Treeview
-        self.tree_ciclos = ttk.Treeview(parent, columns=columnas, show="headings", height=15)
-
-        # Configurar encabezados
-        headers_config = {
-            "ID": ("ID", 50),
-            "Nombre": ("Nombre del Ciclo", 250),
-            "Modalidad": ("Modalidad", 120),
-            "Costo": ("Costo", 80),
-            "Inicio": ("Fecha Inicio", 100),
-            "Fin": ("Fecha Fin", 100),
-            "Estado": ("Estado", 100)
-        }
-
-        for col, (texto, ancho) in headers_config.items():
-            self.tree_ciclos.heading(col, text=texto)
-            self.tree_ciclos.column(col, width=ancho)
-
-        # Scrollbars
-        scrollbar_v = ttk.Scrollbar(parent, orient="vertical", command=self.tree_ciclos.yview)
-        scrollbar_h = ttk.Scrollbar(parent, orient="horizontal", command=self.tree_ciclos.xview)
-
-        self.tree_ciclos.configure(yscrollcommand=scrollbar_v.set, xscrollcommand=scrollbar_h.set)
-
-        # Grid layout
-        self.tree_ciclos.grid(row=0, column=0, sticky="nsew")
-        scrollbar_v.grid(row=0, column=1, sticky="ns")
-        scrollbar_h.grid(row=1, column=0, sticky="ew")
-
-        # Eventos
-        self.tree_ciclos.bind("<Double-1>", self.on_doble_click_ciclo)
-        self.tree_ciclos.bind("<Button-3>", self.mostrar_menu_contextual)
-
-    def cargar_datos_en_tabla(self):
-        """Cargar los datos de ciclos en la tabla"""
-        # Limpiar tabla
-        for item in self.tree_ciclos.get_children():
-            self.tree_ciclos.delete(item)
-
-        # Insertar datos
-        for ciclo in self.ciclos_data:
-            self.tree_ciclos.insert("", "end", values=ciclo)
-
-    def mostrar_estadisticas_ciclos(self, parent):
-        """Mostrar estadísticas de los ciclos"""
-        stats_frame = ttk.LabelFrame(parent, text="Estadísticas", padding=(10, 5))
-        stats_frame.grid(row=1, column=0, sticky="ew", pady=(10, 0))
-        stats_frame.columnconfigure(0, weight=1)
-        stats_frame.columnconfigure(1, weight=1)
-        stats_frame.columnconfigure(2, weight=1)
-
-        # Calcular estadísticas
-        total_ciclos = len(self.ciclos_data)
-        ciclos_activos = sum(1 for ciclo in self.ciclos_data if ciclo[6] == "Activo")
-        ciclos_finalizados = sum(1 for ciclo in self.ciclos_data if ciclo[6] == "Finalizado")
-
-        # Mostrar estadísticas
-        stats_info = [
-            ("Total de ciclos", total_ciclos),
-            ("Ciclos activos", ciclos_activos),
-            ("Ciclos finalizados", ciclos_finalizados)
-        ]
-
-        for i, (label, valor) in enumerate(stats_info):
-            stat_label = ttk.Label(stats_frame, text=f"{label}: {valor}", font=("Arial", 12, "bold"))
-            stat_label.grid(row=0, column=i, padx=10, pady=5)
-
-    def crear_botones_accion_ciclos(self):
-        """Crear los botones de acción para ciclos"""
-        botones_frame = ttk.Frame(self.ventana_ciclos)
-        botones_frame.grid(row=2, column=0, sticky="ew", padx=20, pady=(0, 20))
-        botones_frame.columnconfigure(0, weight=1)
-
-        # Frame para botones principales
-        acciones_frame = ttk.Frame(botones_frame)
-        acciones_frame.pack(fill="x", pady=(0, 10))
-
-        # Botones de acción
-        botones_config = [
-            ("Agregar Ciclo", self.agregar_ciclo, "#28a745"),
-            ("Editar Ciclo", self.editar_ciclo, "#ffc107"),
-            ("Eliminar Ciclo", self.eliminar_ciclo, "#dc3545"),
-            ("Actualizar", self.actualizar_ciclos, "#17a2b8")
-        ]
-
-        for i, (texto, comando, color) in enumerate(botones_config):
-            boton = ttk.Button(acciones_frame, text=texto, command=comando)
-            boton.grid(row=0, column=i, padx=5, pady=5, sticky="ew")
-            acciones_frame.columnconfigure(i, weight=1)
-
-        # Botón cerrar
-        boton_cerrar = ttk.Button(botones_frame, text="Cerrar", command=self.cerrar_ventana)
-        boton_cerrar.pack(pady=(10, 0))
-
-    def on_doble_click_ciclo(self, event):
-        """Manejar doble click en un ciclo"""
-        seleccion = self.tree_ciclos.selection()
-        if seleccion:
-            self.ver_detalles_ciclo()
-
-    def mostrar_menu_contextual(self, event):
-        """Mostrar menú contextual al hacer clic derecho"""
-        seleccion = self.tree_ciclos.selection()
-        if seleccion:
-            menu = tk.Menu(self.ventana_ciclos, tearoff=0)
-            menu.add_command(label="Ver detalles", command=self.ver_detalles_ciclo)
-            menu.add_separator()
-            menu.add_command(label="Editar", command=self.editar_ciclo)
-            menu.add_command(label="Eliminar", command=self.eliminar_ciclo)
-            menu.tk_popup(event.x_root, event.y_root)
-
-    def ver_detalles_ciclo(self):
-        """Ver detalles del ciclo seleccionado"""
-        seleccion = self.tree_ciclos.selection()
-        if not seleccion:
-            messagebox.showwarning("Advertencia", "Seleccione un ciclo para ver detalles")
+    def cargar_ciclos(self):
+        """Cargar los ciclos desde la base de datos"""
+        if not self.sede_info:
+            messagebox.showerror("Error", "No se ha seleccionado una sede")
             return
 
-        # Obtener datos del ciclo seleccionado
-        item = self.tree_ciclos.item(seleccion[0])
-        valores = item['values']
+        try:
+            self.ciclos_data = obtener_ciclos_por_sede(self.sede_info[0])
+            self.mostrar_ciclos()
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al cargar ciclos: {str(e)}")
+            print(f"❌ Error al cargar ciclos: {e}")
 
-        # Crear ventana de detalles
-        self.mostrar_ventana_detalles(valores)
+    def mostrar_ciclos(self):
+        """Mostrar los ciclos en el área de ciclos"""
+        # Limpiar frame actual
+        for widget in self.frame_ciclos.winfo_children():
+            widget.destroy()
 
-    def mostrar_ventana_detalles(self, datos_ciclo):
-        """Mostrar ventana con detalles del ciclo"""
-        ventana_detalles = tk.Toplevel(self.ventana_ciclos)
-        ventana_detalles.title("Detalles del Ciclo")
-        ventana_detalles.geometry("500x400")
-        ventana_detalles.configure(bg="#f0f0f0")
-        ventana_detalles.resizable(False, False)
+        if not self.ciclos_data:
+            # Mostrar mensaje si no hay ciclos
+            no_ciclos_label = ttk.Label(self.frame_ciclos,
+                                        text="No hay ciclos programados",
+                                        style="tituloCiclos.TLabel")
+            no_ciclos_label.grid(row=0, column=0, pady=50)
+            return
 
-        # Centrar ventana
-        ventana_detalles.transient(self.ventana_ciclos)
-        ventana_detalles.grab_set()
+        # Configurar grid para mostrar ciclos en filas
+        columnas_por_fila = 4
+        for i, ciclo in enumerate(self.ciclos_data):
+            fila = i // columnas_por_fila
+            columna = i % columnas_por_fila
 
-        # Crear contenido de detalles
-        main_frame = ttk.Frame(ventana_detalles, padding=20)
-        main_frame.pack(fill="both", expand=True)
+            # Configurar columnas del grid
+            self.frame_ciclos.columnconfigure(columna, weight=1)
 
-        # Título
-        titulo_label = ttk.Label(main_frame, text="Información del Ciclo",
-                                 font=("Arial", 16, "bold"))
-        titulo_label.pack(pady=(0, 20))
+            # Crear tarjeta de ciclo
+            self.crear_tarjeta_ciclo(self.frame_ciclos, ciclo, fila, columna)
 
-        # Información del ciclo
-        info_frame = ttk.Frame(main_frame)
-        info_frame.pack(fill="x", pady=(0, 20))
+        # Actualizar scroll region
+        self.frame_ciclos.update_idletasks()
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 
-        campos = [
-            ("ID", datos_ciclo[0]),
-            ("Nombre", datos_ciclo[1]),
-            ("Modalidad", datos_ciclo[2]),
-            ("Costo", f"S/. {datos_ciclo[3]}"),
-            ("Fecha de Inicio", datos_ciclo[4]),
-            ("Fecha de Fin", datos_ciclo[5]),
-            ("Estado", datos_ciclo[6])
-        ]
+    def crear_tarjeta_ciclo(self, parent, ciclo, fila, columna):
+        """Crear una tarjeta individual para un ciclo"""
+        # Extraer información del ciclo
+        id_ciclo = ciclo[0]
+        nombre_ciclo = ciclo[1]
+        modalidad = ciclo[2] if len(ciclo) > 2 else "N/A"
+        costo = ciclo[3] if len(ciclo) > 3 else 0.0
+        fecha_inicio = ciclo[4] if len(ciclo) > 4 else "N/A"
+        fecha_fin = ciclo[5] if len(ciclo) > 5 else "N/A"
 
-        for i, (campo, valor) in enumerate(campos):
-            label_campo = ttk.Label(info_frame, text=f"{campo}:", font=("Arial", 12, "bold"))
-            label_campo.grid(row=i, column=0, sticky="w", padx=(0, 10), pady=5)
+        # Frame de la tarjeta
+        card_frame = ttk.Frame(parent, style="cicloCard.TFrame")
+        card_frame.grid(row=fila, column=columna, sticky="ew", padx=10, pady=10)
+        card_frame.configure(padding=(15, 10))
 
-            label_valor = ttk.Label(info_frame, text=str(valor), font=("Arial", 12))
-            label_valor.grid(row=i, column=1, sticky="w", pady=5)
+        # Configurar grid de la tarjeta
+        card_frame.columnconfigure(0, weight=1)
 
-        # Botón cerrar
-        boton_cerrar = ttk.Button(main_frame, text="Cerrar", command=ventana_detalles.destroy)
-        boton_cerrar.pack(pady=(20, 0))
+        # Nombre del ciclo
+        nombre_label = ttk.Label(card_frame,
+                                 text=nombre_ciclo,
+                                 style="cicloNombre.TLabel")
+        nombre_label.grid(row=0, column=0, sticky="w", pady=(0, 5))
 
-    def agregar_ciclo(self):
-        """Agregar un nuevo ciclo"""
-        messagebox.showinfo("Función en desarrollo", "La función de agregar ciclo estará disponible próximamente")
+        # Modalidad
+        modalidad_label = ttk.Label(card_frame,
+                                    text=f"Modalidad: {modalidad}",
+                                    style="cicloInfo.TLabel")
+        modalidad_label.grid(row=1, column=0, sticky="w", pady=(0, 5))
+
+        # Costo
+        costo_label = ttk.Label(card_frame,
+                                text=f"Costo: S/. {costo:.2f}",
+                                style="cicloInfo.TLabel")
+        costo_label.grid(row=2, column=0, sticky="w", pady=(0, 5))
+
+        # Fechas
+        fechas_label = ttk.Label(card_frame,
+                                 text=f"Inicio: {fecha_inicio}",
+                                 style="cicloInfo.TLabel")
+        fechas_label.grid(row=3, column=0, sticky="w", pady=(0, 10))
+
+        # Hacer la tarjeta clickeable para seleccionar
+        def seleccionar_ciclo(event):
+            self.ciclo_seleccionado = ciclo
+            self.resaltar_ciclo_seleccionado()
+
+        card_frame.bind("<Button-1>", seleccionar_ciclo)
+        nombre_label.bind("<Button-1>", seleccionar_ciclo)
+        modalidad_label.bind("<Button-1>", seleccionar_ciclo)
+        costo_label.bind("<Button-1>", seleccionar_ciclo)
+        fechas_label.bind("<Button-1>", seleccionar_ciclo)
+
+        # Guardar referencia para resaltar
+        card_frame.id_ciclo = id_ciclo
+
+    def resaltar_ciclo_seleccionado(self):
+        """Resaltar el ciclo seleccionado"""
+        if not self.ciclo_seleccionado:
+            return
+
+        # Restaurar el estilo de todas las tarjetas
+        for widget in self.frame_ciclos.winfo_children():
+            if hasattr(widget, 'id_ciclo'):
+                widget.configure(style="cicloCard.TFrame")
+                # Actualizar estilo de los labels hijos
+                for child in widget.winfo_children():
+                    if isinstance(child, ttk.Label):
+                        if "Nombre" in str(child.cget("style")):
+                            child.configure(style="cicloNombre.TLabel")
+                        else:
+                            child.configure(style="cicloInfo.TLabel")
+
+        # Resaltar la tarjeta seleccionada
+        for widget in self.frame_ciclos.winfo_children():
+            if hasattr(widget, 'id_ciclo') and widget.id_ciclo == self.ciclo_seleccionado[0]:
+                widget.configure(style="cicloCardSeleccionada.TFrame")
+                # Actualizar estilo de los labels hijos
+                for child in widget.winfo_children():
+                    if isinstance(child, ttk.Label):
+                        if "Nombre" in str(child.cget("style")):
+                            child.configure(style="cicloNombreSeleccionado.TLabel")
+                        else:
+                            child.configure(style="cicloInfoSeleccionado.TLabel")
+
+    def crear_ciclo(self):
+        """Abrir ventana para crear un nuevo ciclo"""
+        if not self.sede_info:
+            messagebox.showerror("Error", "No se ha seleccionado una sede")
+            return
+
+        # Crear ventana de creación de ciclo
+        ventana_crear = VentanaCrearCiclo(self, self.sede_info[0], self.cargar_ciclos)
 
     def editar_ciclo(self):
         """Editar el ciclo seleccionado"""
-        seleccion = self.tree_ciclos.selection()
-        if not seleccion:
-            messagebox.showwarning("Advertencia", "Seleccione un ciclo para editar")
+        if not self.ciclo_seleccionado:
+            messagebox.showwarning("Advertencia", "Debe seleccionar un ciclo para editar")
             return
 
-        messagebox.showinfo("Función en desarrollo", "La función de editar ciclo estará disponible próximamente")
+        # Crear ventana de edición de ciclo
+        ventana_editar = VentanaEditarCiclo(self, self.ciclo_seleccionado, self.cargar_ciclos)
 
-    def eliminar_ciclo(self):
-        """Eliminar el ciclo seleccionado"""
-        seleccion = self.tree_ciclos.selection()
-        if not seleccion:
-            messagebox.showwarning("Advertencia", "Seleccione un ciclo para eliminar")
+    def ver_grupos(self):
+        """Ver los grupos del ciclo seleccionado"""
+        if not self.ciclo_seleccionado:
+            messagebox.showwarning("Advertencia", "Debe seleccionar un ciclo para ver sus grupos")
             return
 
-        # Confirmar eliminación
-        respuesta = messagebox.askyesno("Confirmar eliminación",
-                                        "¿Está seguro que desea eliminar este ciclo?")
-        if respuesta:
-            messagebox.showinfo("Función en desarrollo", "La función de eliminar ciclo estará disponible próximamente")
-
-    def actualizar_ciclos(self):
-        """Actualizar la lista de ciclos"""
         try:
-            self.ciclos_data = ModeloCiclos.obtener_ciclos_por_sede(self.sede_info[0])
-            self.cargar_datos_en_tabla()
-            messagebox.showinfo("Éxito", "Lista de ciclos actualizada correctamente")
+            ventana_grupos = VistaGestionarGrupos(self, self.ciclo_seleccionado)
+            ventana_grupos.mostrar_grupos(self.ciclo_seleccionado)
         except Exception as e:
-            messagebox.showerror("Error", f"Error al actualizar ciclos: {str(e)}")
+            messagebox.showerror("Error", f"Error al abrir la gestión de grupos: {str(e)}")
 
-    def cerrar_ventana(self):
-        """Cerrar la ventana de ciclos"""
-        self.ventana_ciclos.destroy()
+    def regresar_sedes(self):
+        """Regresar a la vista de sedes"""
+        self.destroy()
 
-
-# Función de prueba independiente
-if __name__ == "__main__":
-    # Crear ventana principal para pruebas
-    root = tk.Tk()
-    root.title("Prueba Vista Ciclos")
-    root.geometry("300x200")
-
-
-    def test_ciclos():
-        sede_info = (1, "Sede Principal", "Lima")
-        vista_ciclos = CiclosVista(root)
-        vista_ciclos.mostrar_ciclos_sede(sede_info)
-
-
-    boton_test = ttk.Button(root, text="Probar Vista Ciclos", command=test_ciclos)
-    boton_test.pack(pady=50)
-
-    root.mainloop()
+    def on_closing(self):
+        """Manejar el cierre de la ventana"""
+        self.destroy()
