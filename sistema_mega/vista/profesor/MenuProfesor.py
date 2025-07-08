@@ -1,16 +1,19 @@
 import tkinter as tk
-from tkinter import ttk
+import traceback
+from tkinter import ttk, messagebox
+from datetime import datetime
+from tkcalendar import DateEntry
 from sistema_mega.modelo.profesor_modelo import *
 
 
 class MenuProfesor(tk.Toplevel):
-    def __init__(self, master, id_usuario, nombre_usuario):  # Cambio 1: Agregar master
-        super().__init__(master)  # Cambio 2: Pasar master al padre
+    def __init__(self, master, id_usuario, nombre_usuario):
+        super().__init__(master)
         self.title("Profesor")
         self.geometry("1400x700")
         self.configure(bg="#f0f0f0")
 
-        self.master = master  # Cambio 3: Guardar referencia al padre
+        self.master = master
         self.id_usuario = id_usuario
         self.nombre_usuario = nombre_usuario
 
@@ -34,36 +37,36 @@ class MenuProfesor(tk.Toplevel):
 
         # Estilo para el título del header
         estilo.configure("tituloHeader.TLabel",
-                         background="#4a90e2",
-                         foreground="white",
-                         font=("Arial", 16, "bold"))
+                       background="#4a90e2",
+                       foreground="white",
+                       font=("Arial", 16, "bold"))
 
         # Estilo para el botón de salir
         estilo.configure("botonSalir.TButton",
-                         background="#ff6b6b",
-                         foreground="white",
-                         font=("Arial", 12, "bold"),
-                         borderwidth=0,
-                         relief="flat")
+                       background="#ff6b6b",
+                       foreground="white",
+                       font=("Arial", 12, "bold"),
+                       borderwidth=0,
+                       relief="flat")
         estilo.map("botonSalir.TButton",
-                   background=[("pressed", "#e74c3c"), ("active", "#ff8080")])
+                 background=[("pressed", "#e74c3c"), ("active", "#ff8080")])
 
         # Estilo para los botones del menú
         estilo.configure("botonMenu.TButton",
-                         background="white",
-                         foreground="#333333",
-                         font=("Arial", 14),
-                         borderwidth=1,
-                         relief="solid",
-                         padding=(20, 15))
+                       background="white",
+                       foreground="#333333",
+                       font=("Arial", 14),
+                       borderwidth=1,
+                       relief="solid",
+                       padding=(20, 15))
         estilo.map("botonMenu.TButton",
-                   background=[("pressed", "#e0e0e0"), ("active", "#f5f5f5")])
+                 background=[("pressed", "#e0e0e0"), ("active", "#f5f5f5")])
 
         # Estilo para los iconos de los botones
         estilo.configure("iconoBoton.TLabel",
-                         background="white",
-                         foreground="#4a90e2",
-                         font=("Arial", 20))
+                       background="white",
+                       foreground="#4a90e2",
+                       font=("Arial", 20))
 
     def crear_widgets(self):
         """Crear todos los widgets de la interfaz"""
@@ -92,15 +95,15 @@ class MenuProfesor(tk.Toplevel):
 
         # Título del menú
         titulo_label = ttk.Label(header_frame,
-                                 text=f"Menú del Profesor {self.nombre_usuario}",
-                                 style="tituloHeader.TLabel")
+                               text=f"Menú del Profesor {self.nombre_usuario}",
+                               style="tituloHeader.TLabel")
         titulo_label.grid(row=0, column=0, sticky="w")
 
         # Botón de salir
         boton_salir = ttk.Button(header_frame,
-                                 text="Salir",
-                                 style="botonSalir.TButton",
-                                 command=self.salir)
+                                text="Salir",
+                                style="botonSalir.TButton",
+                                command=self.salir)
         boton_salir.grid(row=0, column=1, sticky="e", padx=(10, 0))
 
     def crear_area_botones(self):
@@ -140,16 +143,34 @@ class MenuProfesor(tk.Toplevel):
 
         # Botón principal
         boton = ttk.Button(boton_frame,
-                           text=f"{icono}  {texto}",
-                           style="botonMenu.TButton",
-                           command=comando,
-                           width=25)
+                          text=f"{icono}  {texto}",
+                          style="botonMenu.TButton",
+                          command=comando,
+                          width=25)
         boton.grid(row=0, column=0, sticky="ew")
+
+    def validar_fecha(self, fecha_str):
+        """Valida el formato de fecha dd/mm/aaaa"""
+        try:
+            datetime.strptime(fecha_str, "%d/%m/%Y")
+            return True
+        except ValueError:
+            return False
+
+    def convertir_formato_fecha(self, fecha_str):
+        """Convierte fecha de dd/mm/aaaa a aaaa-mm-dd para la BD"""
+        if not self.validar_fecha(fecha_str):
+            return None
+        try:
+            fecha_obj = datetime.strptime(fecha_str, "%d/%m/%Y")
+            return fecha_obj.strftime("%Y-%m-%d")
+        except ValueError:
+            return None
 
     def ver_grupos(self):
         """Método para ver grupos asignados"""
         self.withdraw()
-        ventana = tk.Toplevel(self)  # Cambio 4: Pasar self como master
+        ventana = tk.Toplevel(self)
         ventana.title("Grupos Asignados")
         ventana.geometry("1800x600")
         ventana.configure(bg="#f0f0f0")
@@ -323,7 +344,7 @@ class MenuProfesor(tk.Toplevel):
         """Método para salir/cerrar sesión"""
         print("Cerrando sesión...")
         self.destroy()
-        self.master.deiconify()  # Cambio 6: Mostrar ventana padre al salir
+        self.master.deiconify()
 
     def mostrar(self):
         """Mostrar la ventana"""
