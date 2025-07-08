@@ -207,7 +207,7 @@ class MenuEstudiante(tk.Toplevel):
 
 # opciones a ingresar =====================================
 class GestionContrasena(tk.Toplevel):
-    def __init__(self, id_usuario, nombre_usuario):
+    def __init__(self, id_usuario, nombre_usuario, ventana_anterior=None):
         super().__init__()
         self.title("Actualizar Contraseña")
         self.geometry("500x350")
@@ -215,6 +215,7 @@ class GestionContrasena(tk.Toplevel):
 
         self.id_usuario = id_usuario
         self.nombre_usuario = nombre_usuario
+        self.ventana_anterior = ventana_anterior
 
         self.configurar_estilo()
         self.crear_widgets()
@@ -249,25 +250,18 @@ class GestionContrasena(tk.Toplevel):
         formulario = ttk.Frame(self, style="frame.TFrame")
         formulario.pack(padx=30, pady=25, fill="both", expand=True)
 
-        # Campo contraseña actual
-        ttk.Label(formulario, text="Contraseña Actual:", style="Etiqueta.TLabel").grid(row=0, column=0, sticky="w",
-                                                                                       pady=5)
+        ttk.Label(formulario, text="Contraseña Actual:", style="Etiqueta.TLabel").grid(row=0, column=0, sticky="w", pady=5)
         self.entry_actual = ttk.Entry(formulario, show="*")
         self.entry_actual.grid(row=0, column=1, pady=5)
 
-        # Campo nueva contraseña
-        ttk.Label(formulario, text="Nueva Contraseña:", style="Etiqueta.TLabel").grid(row=1, column=0, sticky="w",
-                                                                                      pady=5)
+        ttk.Label(formulario, text="Nueva Contraseña:", style="Etiqueta.TLabel").grid(row=1, column=0, sticky="w", pady=5)
         self.entry_nueva = ttk.Entry(formulario, show="*")
         self.entry_nueva.grid(row=1, column=1, pady=5)
 
-        # Campo repetir nueva contraseña
-        ttk.Label(formulario, text="Repetir Nueva Contraseña:", style="Etiqueta.TLabel").grid(row=2, column=0,
-                                                                                              sticky="w", pady=5)
+        ttk.Label(formulario, text="Repetir Nueva Contraseña:", style="Etiqueta.TLabel").grid(row=2, column=0, sticky="w", pady=5)
         self.entry_repetir = ttk.Entry(formulario, show="*")
         self.entry_repetir.grid(row=2, column=1, pady=5)
 
-        # Botón actualizar
         btn_actualizar = ttk.Button(formulario,
                                     text="Actualizar Contraseña",
                                     style="Boton.TButton",
@@ -282,20 +276,23 @@ class GestionContrasena(tk.Toplevel):
         repetir = self.entry_repetir.get().strip()
 
         if not actual or not nueva or not repetir:
-            messagebox.showwarning("Campos Vacíos", "Por favor complete todos los campos.")
+            self.mostrar_error("Por favor complete todos los campos.")
             return
 
         if nueva != repetir:
-            messagebox.showwarning("Error", "Las nuevas contraseñas no coinciden.")
+            self.mostrar_error("Las nuevas contraseñas no coinciden.")
             return
 
         try:
-            resultado = cambiar_contrasenia(self.id_usuario, actual, nueva)
-            if resultado:
-                messagebox.showinfo("Éxito", resultado[0])
-                self.destroy()
+            mensaje = cambiar_contrasenia(self.id_usuario, actual, nueva)
+            messagebox.showinfo("Éxito", mensaje)
+            # self.destroy()
         except Exception as e:
-            messagebox.showerror("Error", str(e))
+            self.mostrar_error(str(e))
+
+    def mostrar_error(self, mensaje):
+        messagebox.showerror("Error", mensaje)
+
 
 class GestionNotas(tk.Toplevel):
     def __init__(self, id_usuario, nombre_usuario):
