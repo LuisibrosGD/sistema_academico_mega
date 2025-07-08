@@ -5,22 +5,23 @@ from datetime import datetime
 
 """Modelo para manejar operaciones relacionadas con ciclos"""
 
+
 def obtener_ciclos_por_sede(id_sede):
     """
-    Obtener todos los ciclos programados para una sede específica
+    Obtener todos los ciclos programados para una sede específica (solo los que están en curso)
     Args:
         id_sede (int): ID de la sede
     Returns:
         list: Lista de tuplas con información de ciclos
     """
     try:
-        # Query para obtener ciclos de una sede específica
+        # Query para obtener ciclos de una sede específica - SOLO EN CURSO
         query = """
             SELECT cp.id_ciclo, cp.nombre_ciclo, cp.modalidad, cp.costo, 
                    cp.fecha_inicio, cp.fecha_fin, cp.estado
             FROM ciclos_programados cp
             INNER JOIN sedes_ciclos sc ON cp.id_ciclo = sc.id_ciclo
-            WHERE sc.id_sede = %s
+            WHERE sc.id_sede = %s AND cp.estado = 'en curso'
             ORDER BY cp.fecha_inicio DESC
         """
 
@@ -51,6 +52,27 @@ def obtener_ciclo_por_id(id_ciclo):
 
     except Exception as e:
         print(f"❌ Error al obtener ciclo por ID: {e}")
+        raise e
+
+def obtener_todos_los_ciclos():
+    """
+    Obtener todos los ciclos programados para el combobox de selección (solo los que están en curso)
+    Returns:
+        list: Lista de tuplas con (id_ciclo, nombre_ciclo)
+    """
+    try:
+        query = """
+            SELECT id_ciclo, nombre_ciclo
+            FROM ciclos_programados
+            WHERE estado = 'en curso'
+            ORDER BY nombre_ciclo
+        """
+
+        resultados = ejecutar_select(query, ())
+        return resultados if resultados else []
+
+    except Exception as e:
+        print(f"❌ Error al obtener todos los ciclos: {e}")
         raise e
 
 def validar_datos_ciclo(nombre, modalidad, costo, fecha_inicio, fecha_fin):
@@ -255,7 +277,7 @@ def verificar_sede_existe(id_sede):
 
 def verificar_nombre_ciclo_duplicado(nombre, id_sede, id_ciclo_excluir=None):
     """
-    Verificar si ya existe un ciclo con el mismo nombre en la misma sede
+    Verificar si ya existe un ciclo con el mismo nombre en la misma sede (solo entre los ciclos en curso)
     Args:
         nombre (str): Nombre del ciclo
         id_sede (int): ID de la sede
@@ -271,6 +293,7 @@ def verificar_nombre_ciclo_duplicado(nombre, id_sede, id_ciclo_excluir=None):
                 WHERE UPPER(TRIM(cp.nombre_ciclo)) = UPPER(TRIM(%s))
                 AND sc.id_sede = %s
                 AND cp.id_ciclo != %s
+                AND cp.estado = 'en curso'
             """
             parametros = (nombre, id_sede, id_ciclo_excluir)
         else:
@@ -279,6 +302,7 @@ def verificar_nombre_ciclo_duplicado(nombre, id_sede, id_ciclo_excluir=None):
                 INNER JOIN sedes_ciclos sc ON cp.id_ciclo = sc.id_ciclo
                 WHERE UPPER(TRIM(cp.nombre_ciclo)) = UPPER(TRIM(%s))
                 AND sc.id_sede = %s
+                AND cp.estado = 'en curso'
             """
             parametros = (nombre, id_sede)
 
@@ -292,7 +316,7 @@ def verificar_nombre_ciclo_duplicado(nombre, id_sede, id_ciclo_excluir=None):
 
 def obtener_estadisticas_ciclos_sede(id_sede):
     """
-    Obtener estadísticas de ciclos para una sede
+    Obtener estadísticas de ciclos para una sede (solo considerando los en curso)
     Args:
         id_sede (int): ID de la sede
     Returns:
@@ -303,11 +327,10 @@ def obtener_estadisticas_ciclos_sede(id_sede):
             SELECT 
                 COUNT(*) as total_ciclos,
                 SUM(CASE WHEN cp.estado = 'en curso' THEN 1 ELSE 0 END) as ciclos_activos,
-                SUM(CASE WHEN cp.estado = 'finalizado' THEN 1 ELSE 0 END) as ciclos_finalizados,
                 AVG(cp.costo) as costo_promedio
             FROM ciclos_programados cp
             INNER JOIN sedes_ciclos sc ON cp.id_ciclo = sc.id_ciclo
-            WHERE sc.id_sede = %s
+            WHERE sc.id_sede = %s AND cp.estado = 'en curso'
         """
 
         resultado = ejecutar_select(query, (id_sede,))
@@ -317,14 +340,12 @@ def obtener_estadisticas_ciclos_sede(id_sede):
             return {
                 'total_ciclos': fila[0] or 0,
                 'ciclos_activos': fila[1] or 0,
-                'ciclos_finalizados': fila[2] or 0,
-                'costo_promedio': float(fila[3]) if fila[3] else 0.0
+                'costo_promedio': float(fila[2]) if fila[2] else 0.0
             }
         else:
             return {
                 'total_ciclos': 0,
                 'ciclos_activos': 0,
-                'ciclos_finalizados': 0,
                 'costo_promedio': 0.0
             }
 
@@ -333,9 +354,9 @@ def obtener_estadisticas_ciclos_sede(id_sede):
         return {
             'total_ciclos': 0,
             'ciclos_activos': 0,
-            'ciclos_finalizados': 0,
             'costo_promedio': 0.0
         }
+
 
 def obtener_modalidades_disponibles():
     """

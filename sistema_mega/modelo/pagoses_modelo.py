@@ -2,9 +2,7 @@ from sistema_mega.database.conexion import *
 
 
 def obtener_pagos_estudiante(id_usuario):
-    """
-    Obtiene todos los pagos realizados por un estudiante específico
-    """
+
     query = """
     SELECT 
         cp.nombre_ciclo,
@@ -26,14 +24,12 @@ def obtener_pagos_estudiante(id_usuario):
         resultados = ejecutar_select(query, (id_usuario,))
         return resultados if resultados else []
     except Exception as e:
-        print(f"❌ Error al obtener pagos del estudiante: {e}")
+        print(f" Error al obtener pagos del estudiante: {e}")
         return []
 
 
 def obtener_total_pagado_estudiante(id_usuario):
-    """
-    Obtiene el total de dinero pagado por un estudiante
-    """
+
     query = """
     SELECT 
         COALESCE(SUM(p.monto), 0) as total_pagado
@@ -47,14 +43,12 @@ def obtener_total_pagado_estudiante(id_usuario):
         resultado = ejecutar_select(query, (id_usuario,))
         return resultado[0][0] if resultado else 0
     except Exception as e:
-        print(f"❌ Error al obtener total pagado: {e}")
+        print(f" Error al obtener total pagado: {e}")
         return 0
 
 
 def obtener_datos_estudiante(id_usuario):
-    """
-    Obtiene los datos básicos del estudiante
-    """
+
     query = """
     SELECT 
         e.nombre,
@@ -70,5 +64,5 @@ def obtener_datos_estudiante(id_usuario):
         resultado = ejecutar_select(query, (id_usuario,))
         return resultado[0] if resultado else None
     except Exception as e:
-        print(f"❌ Error al obtener datos del estudiante: {e}")
+        print(f" Error al obtener datos del estudiante: {e}")
         return None

@@ -1,5 +1,215 @@
 from sistema_mega.database.conexion import *
 from datetime import datetime
+import pandas as pd
+from datetime import datetime
+import os
+from tkinter import filedialog, messagebox
+
+
+def generar_excel_estudiantes_grupo(id_grupo, area_filtro=None, nombre_archivo=None):
+    """
+    Generar archivo Excel con la información de estudiantes de un grupo
+    Args:
+        id_grupo (int): ID del grupo
+        area_filtro (str, optional): Área académica para filtrar (None para todas)
+        nombre_archivo (str, optional): Nombre del archivo, si no se especifica se genera automáticamente
+    Returns:
+        str: Ruta del archivo generado o None si hubo error
+    """
+    try:
+        # Obtener información completa del grupo
+        resumen_grupo = obtener_resumen_grupo_completo(id_grupo)
+
+        if not resumen_grupo:
+            print("❌ No se pudo obtener información del grupo")
+            return None
+
+        # Obtener estudiantes según el filtro
+        if area_filtro and area_filtro != "Todas":
+            estudiantes = obtener_estudiantes_por_grupo_y_area(id_grupo, area_filtro)
+            sufijo_area = f"_{area_filtro}"
+        else:
+            estudiantes = obtener_estudiantes_por_grupo(id_grupo)
+            sufijo_area = "_Todas_Areas"
+
+        if not estudiantes:
+            print("❌ No hay estudiantes para generar el Excel")
+            return None
+
+        # Preparar datos para el DataFrame
+        datos_estudiantes = []
+        for estudiante in estudiantes:
+            fecha_inscripcion = estudiante[5].strftime("%d/%m/%Y") if estudiante[5] else "N/A"
+            datos_estudiantes.append({
+                'Nombre Completo': estudiante[1],
+                'Área Académica': estudiante[2].upper() if estudiante[2] else "N/A",
+                'Tipo Documento': estudiante[3] if estudiante[3] else "N/A",
+                'Número Documento': estudiante[4] if estudiante[4] else "N/A",
+                'Fecha Inscripción': fecha_inscripcion
+            })
+
+        # Crear DataFrame
+        df = pd.DataFrame(datos_estudiantes)
+
+        # Generar nombre del archivo si no se especifica
+        if not nombre_archivo:
+            nombre_grupo = resumen_grupo['grupo']['nombre_grupo'].replace(' ', '_')
+            fecha_actual = datetime.now().strftime("%Y%m%d_%H%M%S")
+            nombre_archivo = f"Estudiantes_{nombre_grupo}{sufijo_area}_{fecha_actual}.xlsx"
+
+        # Solicitar ubicación para guardar el archivo
+        archivo_path = filedialog.asksaveasfilename(
+            defaultextension=".xlsx",
+            filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")],
+            initialvalue=nombre_archivo,
+            title="Guardar lista de estudiantes"
+        )
+
+        if not archivo_path:
+            print("❌ Operación cancelada por el usuario")
+            return None
+
+        # Crear el archivo Excel con múltiples hojas
+        with pd.ExcelWriter(archivo_path, engine='openpyxl') as writer:
+            # Hoja 1: Información del grupo
+            info_grupo = {
+                'Campo': ['Nombre del Grupo', 'Docente Asignado', 'Ciclo', 'Capacidad Total',
+                          'Estudiantes Inscritos', 'Espacios Disponibles', 'Porcentaje Ocupación',
+                          'Filtro Aplicado', 'Fecha Generación'],
+                'Valor': [
+                    resumen_grupo['grupo']['nombre_grupo'],
+                    resumen_grupo['grupo']['nombre_colaborador'],
+                    resumen_grupo['grupo']['nombre_ciclo'],
+                    resumen_grupo['grupo']['capacidad'],
+                    len(estudiantes),
+                    resumen_grupo['estadisticas']['espacios_disponibles'],
+                    f"{resumen_grupo['estadisticas']['porcentaje_ocupacion']}%",
+                    area_filtro if area_filtro and area_filtro != "Todas" else "Todas las áreas",
+                    datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+                ]
+            }
+
+            df_info = pd.DataFrame(info_grupo)
+            df_info.to_excel(writer, sheet_name='Información del Grupo', index=False)
+
+            # Hoja 2: Lista de estudiantes
+            df.to_excel(writer, sheet_name='Lista de Estudiantes', index=False)
+
+            # Hoja 3: Estadísticas por área (si hay múltiples áreas)
+            if not area_filtro or area_filtro == "Todas":
+                stats_por_area = []
+                for area, cantidad in resumen_grupo['estadisticas']['estudiantes_por_area'].items():
+                    stats_por_area.append({
+                        'Área Académica': area.upper() if area else "N/A",
+                        'Cantidad de Estudiantes': cantidad
+                    })
+
+                if stats_por_area:
+                    df_stats = pd.DataFrame(stats_por_area)
+                    df_stats.to_excel(writer, sheet_name='Estadísticas por Área', index=False)
+
+            # Hoja 4: Cursos del grupo
+            cursos_grupo = resumen_grupo['cursos']
+            if cursos_grupo:
+                datos_cursos = []
+                for curso in cursos_grupo:
+                    datos_cursos.append({
+                        'Curso': curso[1],
+                        'Día': curso[2].capitalize(),
+                        'Hora Inicio': curso[3],
+                        'Hora Fin': curso[4],
+                        'Profesor': curso[5]
+                    })
+
+                df_cursos = pd.DataFrame(datos_cursos)
+                df_cursos.to_excel(writer, sheet_name='Cursos del Grupo', index=False)
+
+        print(f"✅ Archivo Excel generado exitosamente: {archivo_path}")
+        return archivo_path
+
+    except Exception as e:
+        print(f"❌ Error al generar archivo Excel: {e}")
+        messagebox.showerror("Error", f"Error al generar archivo Excel: {str(e)}")
+        return None
+
+
+def generar_excel_estudiantes_filtrados(estudiantes_data, grupo_info, area_filtro=None):
+    """
+    Generar Excel con datos de estudiantes ya filtrados
+    Args:
+        estudiantes_data (list): Lista de estudiantes ya filtrados
+        grupo_info (dict): Información del grupo
+        area_filtro (str, optional): Filtro aplicado
+    Returns:
+        str: Ruta del archivo generado o None si hubo error
+    """
+    try:
+        if not estudiantes_data:
+            messagebox.showwarning("Advertencia", "No hay estudiantes para exportar")
+            return None
+
+        # Preparar datos para el DataFrame
+        datos_estudiantes = []
+        for estudiante in estudiantes_data:
+            fecha_inscripcion = estudiante[5].strftime("%d/%m/%Y") if estudiante[5] else "N/A"
+            datos_estudiantes.append({
+                'Nombre Completo': estudiante[1],
+                'Área Académica': estudiante[2].upper() if estudiante[2] else "N/A",
+                'Tipo Documento': estudiante[3] if estudiante[3] else "N/A",
+                'Número Documento': estudiante[4] if estudiante[4] else "N/A",
+                'Fecha Inscripción': fecha_inscripcion
+            })
+
+        # Crear DataFrame
+        df = pd.DataFrame(datos_estudiantes)
+
+        # Generar nombre del archivo
+        nombre_grupo = grupo_info['nombre_grupo'].replace(' ', '_')
+        sufijo_area = f"_{area_filtro}" if area_filtro and area_filtro != "Todas" else "_Todas_Areas"
+        fecha_actual = datetime.now().strftime("%Y%m%d_%H%M%S")
+        nombre_archivo = f"Estudiantes_{nombre_grupo}{sufijo_area}_{fecha_actual}.xlsx"
+
+        # Solicitar ubicación para guardar
+        archivo_path = filedialog.asksaveasfilename(
+            defaultextension=".xlsx",
+            filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")],
+            initialvalue=nombre_archivo,
+            title="Guardar lista de estudiantes"
+        )
+
+        if not archivo_path:
+            return None
+
+        # Guardar archivo
+        with pd.ExcelWriter(archivo_path, engine='openpyxl') as writer:
+            # Información del grupo
+            info_grupo = {
+                'Campo': ['Nombre del Grupo', 'Docente Asignado', 'Ciclo', 'Capacidad Total',
+                          'Estudiantes Exportados', 'Filtro Aplicado', 'Fecha Generación'],
+                'Valor': [
+                    grupo_info['nombre_grupo'],
+                    grupo_info['nombre_colaborador'],
+                    grupo_info['nombre_ciclo'],
+                    grupo_info['capacidad'],
+                    len(estudiantes_data),
+                    area_filtro if area_filtro and area_filtro != "Todas" else "Todas las áreas",
+                    datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+                ]
+            }
+
+            df_info = pd.DataFrame(info_grupo)
+            df_info.to_excel(writer, sheet_name='Información del Grupo', index=False)
+
+            # Lista de estudiantes
+            df.to_excel(writer, sheet_name='Lista de Estudiantes', index=False)
+
+        print(f"✅ Archivo Excel generado exitosamente: {archivo_path}")
+        return archivo_path
+
+    except Exception as e:
+        print(f"❌ Error al generar archivo Excel: {e}")
+        messagebox.showerror("Error", f"Error al generar archivo Excel: {str(e)}")
+        return None
 
 def obtener_grupos_por_ciclo(id_ciclo):
     """
