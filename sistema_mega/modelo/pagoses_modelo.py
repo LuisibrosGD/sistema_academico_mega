@@ -1,4 +1,4 @@
-from sistema_mega.database.conexion import *
+from sistema_mega.database.conexion_estudiante import *
 
 
 def obtener_pagos_estudiante(id_usuario):
