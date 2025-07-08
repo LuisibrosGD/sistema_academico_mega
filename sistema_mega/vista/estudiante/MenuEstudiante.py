@@ -4,6 +4,7 @@ from sistema_mega.modelo.estudiante_modelo import ver_notas
 from sistema_mega.modelo.estudiante_modelo import ver_perfil
 from sistema_mega.database.conexion import ejecutar_procedimiento
 from sistema_mega.modelo.estudiante_modelo import cambiar_contrasenia
+from sistema_mega.vista.login import LoginVentana
 
 
 class MenuEstudiante(tk.Toplevel):
@@ -192,9 +193,13 @@ class MenuEstudiante(tk.Toplevel):
 
 
     def salir(self):
-        """Método para salir/cerrar sesión"""
+        from sistema_mega.vista.login import LoginVentana
+        """Método para cerrar sesión y volver a login"""
         print("Cerrando sesión...")
-        self.quit()
+        self.destroy()  # destruye solo la ventana actual
+
+        login = LoginVentana()
+        login.mainloop()
 
     def mostrar(self):
         """Mostrar la ventana"""

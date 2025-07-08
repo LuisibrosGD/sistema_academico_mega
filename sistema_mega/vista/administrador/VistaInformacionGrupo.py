@@ -1,7 +1,9 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from sistema_mega.modelo.modelo_grupos import *
-
+import os
+import openpyxl
+from openpyxl import Workbook
 
 class VistaInformacionGrupo(tk.Toplevel):
     def __init__(self, parent, grupo_info):
@@ -302,6 +304,12 @@ class VistaInformacionGrupo(tk.Toplevel):
                                  command=self.limpiar_filtro)
         btn_limpiar.grid(row=0, column=2)
 
+        # Botón para exportar Excel
+        btn_exportar = ttk.Button(filtros_frame,
+                                  text="Exportar Excel",
+                                  command=self.exportar_estudiantes_excel)
+        btn_exportar.grid(row=0, column=3, padx=(10, 0))
+
     def crear_tabla_estudiantes(self, parent):
         """Crear la tabla de estudiantes"""
         # Frame para la tabla
@@ -524,6 +532,35 @@ class VistaInformacionGrupo(tk.Toplevel):
     def on_closing(self):
         """Cerrar la ventana"""
         self.destroy()
+
+    def exportar_estudiantes_excel(self):
+        try:
+            # Crear directorio si no existe
+            directorio = os.path.join(os.getcwd(), "registro_estudiantes_grupo")
+            os.makedirs(directorio, exist_ok=True)
+
+            ruta_archivo = os.path.join(directorio, "estudiantes_grupo.xlsx")
+
+            # Crear workbook
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "Estudiantes"
+
+            # Encabezados
+            columnas = ("Nombre Completo", "Área Académica", "Tipo Doc.", "Nro. Documento", "Fecha Inscripción")
+            ws.append(columnas)
+
+            # Agregar datos desde el Treeview
+            for item in self.tree_estudiantes.get_children():
+                datos = self.tree_estudiantes.item(item)['values']
+                ws.append(datos)
+
+            # Guardar
+            wb.save(ruta_archivo)
+
+            messagebox.showinfo("✅ Éxito", f"Estudiantes exportados en:\n{ruta_archivo}")
+        except Exception as e:
+            messagebox.showerror("❌ Error", f"No se pudo exportar a Excel:\n{e}")
 
 
 def mostrar_informacion_grupo(parent, grupo_info):

@@ -1,4 +1,7 @@
 import tkinter as tk
+import os
+import pandas as pd
+
 from tkinter import ttk, messagebox
 from tkcalendar import DateEntry
 from sistema_mega.modelo.ver_notas_estudiante import (
@@ -15,6 +18,7 @@ class VistaNotasEstudiantes(tk.Toplevel):
         self.title("Notas de Estudiantes - Año Actual")
         self.geometry("1400x800")
         self.configure(bg='#f0f0f0')
+        self.datos_filtrados = []
 
         self.create_widgets()
         self.load_filters()
@@ -44,6 +48,10 @@ class VistaNotasEstudiantes(tk.Toplevel):
 
         buscar_btn = tk.Button(filter_frame, text="Filtrar", bg="#007bff", fg="white", command=self.buscar_notas)
         buscar_btn.grid(row=1, column=4, padx=10, pady=5)
+
+        self.export_btn = tk.Button(filter_frame, text="Exportar a Excel", bg="#28a745", fg="white",
+                                    command=self.exportar_excel, state=tk.DISABLED)
+        self.export_btn.grid(row=1, column=5, padx=5, pady=5)
 
         self.create_table()
 
@@ -94,6 +102,7 @@ class VistaNotasEstudiantes(tk.Toplevel):
 
         try:
             notas = obtener_notas_filtradas(filtros)
+            self.datos_filtrados = notas  # 👉 Guarda los datos para exportar
 
             for item in self.tree.get_children():
                 self.tree.delete(item)
@@ -111,10 +120,31 @@ class VistaNotasEstudiantes(tk.Toplevel):
 
             if not notas:
                 messagebox.showinfo("Sin resultados", "No se encontraron notas con esos filtros.")
+                self.export_btn.config(state=tk.DISABLED)
+            else:
+                self.export_btn.config(state=tk.NORMAL)
+
         except Exception as e:
             messagebox.showerror("Error", f"Ocurrió un error al buscar notas:\n{str(e)}")
 
     def go_to_main_menu(self):
         if messagebox.askyesno("Confirmar", "¿Desea regresar al menú principal?"):
             self.destroy()
-            self.master.deiconify()
+            self.parent.deiconify()
+
+    def exportar_excel(self):
+        if not self.datos_filtrados:
+            messagebox.showwarning("Sin datos", "No hay datos para exportar.")
+            return
+
+        try:
+            os.makedirs("registro_notas", exist_ok=True)
+
+            df = pd.DataFrame(self.datos_filtrados)
+            archivo = os.path.join("registro_notas", "notas_filtradas.xlsx")
+            df.to_excel(archivo, index=False)
+
+            messagebox.showinfo("Exportado", f"Notas exportadas exitosamente a:\n{archivo}")
+        except Exception as e:
+            messagebox.showerror("Error al exportar", f"No se pudo exportar a Excel:\n{str(e)}")
+

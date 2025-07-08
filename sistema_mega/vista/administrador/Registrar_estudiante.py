@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from sistema_mega.modelo.registrar_estudiante import (
     obtener_sedes, obtener_ciclos_por_sede, obtener_grupos_por_ciclo,
-    registrar_usuario, registrar_estudiante, registrar_inscripcion, registrar_pago
+    registrar_usuario, registrar_estudiante, registrar_inscripcion, registrar_pago, registrar_estudiante_con_sp
 )
 
 class VistaRegistroEstudiante(tk.Toplevel):
@@ -10,8 +10,7 @@ class VistaRegistroEstudiante(tk.Toplevel):
         super().__init__()
         self.parent = parent
         self.title("Registro de Estudiante")
-        self.geometry("+200+100")  # ventana centrada
-        # self.resizable(False, False)
+        self.geometry("+200+100")
 
         self.sedes = obtener_sedes()
         self.ciclos = []
@@ -30,12 +29,10 @@ class VistaRegistroEstudiante(tk.Toplevel):
 
         estilo = {'padx': 8, 'pady': 6, 'sticky': 'w'}
 
-        # Fila 0
         self.agregar_entry(frame, "Nombres", 0, 0, estilo)
         self.agregar_entry(frame, "Apellido Paterno", 0, 1, estilo)
         self.agregar_entry(frame, "Apellido Materno", 0, 2, estilo)
 
-        # Fila 1
         ttk.Label(frame, text="Tipo de Documento").grid(row=1, column=0, **estilo)
         self.cmb_tipo_doc = ttk.Combobox(frame, values=["dni", "pasaporte"], state="readonly", width=20)
         self.cmb_tipo_doc.grid(row=1, column=1, **estilo)
@@ -49,7 +46,6 @@ class VistaRegistroEstudiante(tk.Toplevel):
         self.btn_generar = ttk.Button(frame, text="Generar", width=10, command=self.autocompletar_usuario)
         self.btn_generar.grid(row=1, column=4, sticky="w")
 
-        # Fila 2
         ttk.Label(frame, text="Área Académica").grid(row=2, column=0, **estilo)
         self.cmb_area = ttk.Combobox(frame, values=["a", "b", "c", "d", "e"], state="readonly", width=20)
         self.cmb_area.grid(row=2, column=1, **estilo)
@@ -59,7 +55,6 @@ class VistaRegistroEstudiante(tk.Toplevel):
         self.entry_usuario = ttk.Entry(frame, state="readonly", width=30)
         self.entry_usuario.grid(row=2, column=3, columnspan=2, sticky="ew")
 
-        # Fila 3
         ttk.Label(frame, text="Correo Institucional").grid(row=3, column=0, **estilo)
         self.entry_correo = ttk.Entry(frame, state="readonly", width=30)
         self.entry_correo.grid(row=3, column=1, columnspan=2, sticky="ew")
@@ -76,7 +71,6 @@ class VistaRegistroEstudiante(tk.Toplevel):
         )
         self.btn_toggle_contra.pack(side="left", padx=4)
 
-        # Fila 4
         ttk.Label(frame, text="Sede").grid(row=4, column=0, **estilo)
         self.cmb_sede = ttk.Combobox(frame, values=[s[1] for s in self.sedes], state="readonly", width=30)
         self.cmb_sede.grid(row=4, column=1, columnspan=2, sticky="ew")
@@ -87,7 +81,6 @@ class VistaRegistroEstudiante(tk.Toplevel):
         self.cmb_ciclo.grid(row=4, column=4, sticky="ew")
         self.cmb_ciclo.bind("<<ComboboxSelected>>", self.actualizar_grupos)
 
-        # Fila 5
         ttk.Label(frame, text="Grupo").grid(row=5, column=0, **estilo)
         self.cmb_grupo = ttk.Combobox(frame, state="readonly", width=30)
         self.cmb_grupo.grid(row=5, column=1, sticky="ew")
@@ -95,10 +88,8 @@ class VistaRegistroEstudiante(tk.Toplevel):
         self.lbl_vacantes = ttk.Label(frame, text="Vacantes disponibles: -", font=("Segoe UI", 10, "italic"))
         self.lbl_vacantes.grid(row=5, column=2, columnspan=3, sticky="w", padx=8)
 
-        # Fila 6
         self.agregar_entry(frame, "Pago realizado (S/.)", 6, 0, estilo)
 
-        # Fila 7
         ttk.Button(frame, text="Guardar", command=self.registrar, width=20).grid(row=7, column=2, pady=20)
         ttk.Button(frame, text="Cancelar", command=self.quit, width=20).grid(row=7, column=3, pady=20)
 
@@ -172,22 +163,39 @@ class VistaRegistroEstudiante(tk.Toplevel):
             usuario = nro_doc
             correo = f"{nro_doc}@acadmega.edu.pe"
             contrasenia = self.entry_contra.get()
-            pago = float(self.campos["Pago realizado (S/.)"].get())
 
-            id_usuario = registrar_usuario(usuario, correo, contrasenia)
-            id_estudiante = registrar_estudiante(nombre, ap_paterno, ap_materno, tipo_doc, nro_doc, area, id_usuario)
+            pago_str = self.campos["Pago realizado (S/.)"].get().strip()
+            if not pago_str:
+                messagebox.showwarning("Dato faltante", "Debe ingresar un monto para el pago.")
+                return
+
+            try:
+                pago = float(pago_str)
+                if pago <= 0:
+                    raise ValueError
+            except ValueError:
+                messagebox.showwarning("Monto inválido", "El monto debe ser un número positivo.")
+                return
 
             id_ciclo = self.ciclos[self.cmb_ciclo.current()][0]
             id_grupo = self.grupos[self.cmb_grupo.current()][0]
 
-            id_inscripcion = registrar_inscripcion(id_estudiante, id_ciclo, id_grupo)
-            registrar_pago(id_inscripcion, pago)
+            # ✅ Llamar al procedimiento almacenado
+            mensaje = registrar_estudiante_con_sp(
+                usuario, correo, contrasenia,
+                nombre, ap_paterno, ap_materno,
+                tipo_doc, nro_doc, area,
+                id_grupo, id_ciclo, pago
+            )
 
-            messagebox.showinfo("Éxito", "Estudiante registrado correctamente.")
+            if mensaje:
+                messagebox.showinfo("Resultado", mensaje)
+            else:
+                raise ValueError("No se recibió respuesta del procedimiento.")
+
         except Exception as e:
-            messagebox.showerror("Error", f"Hubo un error al registrar: {e}")
+            messagebox.showerror("Error", f"Hubo un error al registrar:\n{e}")
 
-# Ejecutar
 if __name__ == "__main__":
     root = tk.Tk()
     app = VistaRegistroEstudiante(root)

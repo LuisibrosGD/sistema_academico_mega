@@ -4,6 +4,7 @@ from tkinter import ttk, messagebox
 from sistema_mega.modelo.usuarios_modelo import mostrar_administradores, crear_administrador, editar_administrador
 
 
+
 # Realizado por Luis Bizarro
 class GestionAdministradores(tk.Toplevel):
     def __init__(self, ventana_anterior):

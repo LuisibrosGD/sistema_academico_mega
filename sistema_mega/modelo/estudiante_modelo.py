@@ -21,8 +21,9 @@ def ver_perfil(id_estudiante):
     return ejecutar_select(query, (id_estudiante,))
 
 def cambiar_contrasenia(id_usuario, contrasenia_actual, nueva_contrasenia):
-    return ejecutar_procedimiento(
+    return ejecutar_procedimiento_con_out(
         "cambiar_contrasenia",
-        (id_usuario, contrasenia_actual, nueva_contrasenia)
+        [id_usuario, contrasenia_actual, nueva_contrasenia],  # 👈 PASAR COMO LISTA
+        1
     )
 

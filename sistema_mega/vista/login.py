@@ -95,9 +95,11 @@ class LoginVentana(tk.Tk):
         app.mainloop()
 
     def entrar_como_invitado(self):
-        from sistema_mega.vista.invitado.ventana_invitado import MenuInvitado
-        app = MenuInvitado()
+        from sistema_mega.vista.invitado.ventana_invitado import VentanaInvitado
+
+        app = VentanaInvitado(self)
         app.mainloop()
+
 
 
 # Ejecutar interfaz

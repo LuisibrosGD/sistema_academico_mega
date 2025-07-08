@@ -7,7 +7,7 @@ class MenuProfesor(tk.Toplevel):
     def __init__(self, master, id_usuario, nombre_usuario):  # Cambio 1: Agregar master
         super().__init__(master)  # Cambio 2: Pasar master al padre
         self.title("Profesor")
-        self.geometry("1000x700")
+        self.geometry("1400x700")
         self.configure(bg="#f0f0f0")
 
         self.master = master  # Cambio 3: Guardar referencia al padre
@@ -151,15 +151,25 @@ class MenuProfesor(tk.Toplevel):
         self.withdraw()
         ventana = tk.Toplevel(self)  # Cambio 4: Pasar self como master
         ventana.title("Grupos Asignados")
-        ventana.geometry("1200x600")
+        ventana.geometry("1800x600")
+        ventana.configure(bg="#f0f0f0")
 
         # Frame principal
-        frame = ttk.Frame(ventana)
+        frame = ttk.Frame(ventana, style="frameProfesor.TFrame")
         frame.pack(fill="both", expand=True, padx=20, pady=20)
+
+        # Header
+        header_frame = ttk.Frame(frame, style="headerProfesor.TFrame")
+        header_frame.pack(fill="x", pady=(0, 20))
+
+        titulo_label = ttk.Label(header_frame,
+                                 text="Grupos Asignados",
+                                 style="tituloHeader.TLabel")
+        titulo_label.pack(side="left")
 
         # Tabla
         columnas = ("ciclo", "modalidad", "curso", "dia", "hora_inicio", "hora_fin", "grupo")
-        tabla = ttk.Treeview(frame, columns=columnas, show="headings")
+        tabla = ttk.Treeview(frame, columns=columnas, show="headings", style="Custom.Treeview")
 
         # Configurar columnas
         for col in columnas:
@@ -179,40 +189,42 @@ class MenuProfesor(tk.Toplevel):
         scrollbar.pack(side="right", fill="y")
 
         # Botón de regreso
+        btn_frame = ttk.Frame(frame, style="frameProfesor.TFrame")
+        btn_frame.pack(pady=10)
+
         ttk.Button(
-            frame,
+            btn_frame,
             text="Regresar",
+            style="botonMenu.TButton",
             command=lambda: [ventana.destroy(), self.deiconify()]
-        ).pack(pady=10)
+        ).pack()
 
         ventana.protocol("WM_DELETE_WINDOW", lambda: [ventana.destroy(), self.deiconify()])
 
     def ver_asistencias(self):
-        """Método para ver asistencias"""
         self.withdraw()
         ventana = tk.Toplevel(self)
         ventana.title("Ver Asistencias")
-        ventana.geometry("1200x600")
+        ventana.geometry("1400x600")
+        ventana.configure(bg="#f0f0f0")
 
-        # Frame principal
-        frame = ttk.Frame(ventana)
+        frame = ttk.Frame(ventana, style="frameProfesor.TFrame")
         frame.pack(fill="both", expand=True, padx=20, pady=20)
 
-        # Filtros
-        filtros_frame = ttk.Frame(frame)
-        filtros_frame.pack(fill="x", pady=(0, 20))
+        # Header
+        header_frame = ttk.Frame(frame, style="headerProfesor.TFrame")
+        header_frame.pack(fill="x", pady=(0, 20))
+        # Filtro por fecha
+        filtro_frame = ttk.Frame(frame, style="frameProfesor.TFrame")
+        filtro_frame.pack(pady=10)
 
-        ttk.Label(filtros_frame, text="Fecha Inicio:").pack(side="left")
-        entry_inicio = ttk.Entry(filtros_frame)
-        entry_inicio.pack(side="left", padx=5)
+        titulo_label = ttk.Label(header_frame,
+                                 text="Registro de Asistencias",
+                                 style="tituloHeader.TLabel")
+        titulo_label.pack(side="left")
 
-        ttk.Label(filtros_frame, text="Fecha Fin:").pack(side="left")
-        entry_fin = ttk.Entry(filtros_frame)
-        entry_fin.pack(side="left", padx=5)
-
-        # Tabla
         columnas = ("ciclo", "modalidad", "grupo", "curso", "fecha", "estado")
-        tabla = ttk.Treeview(frame, columns=columnas, show="headings")
+        tabla = ttk.Treeview(frame, columns=columnas, show="headings", style="Custom.Treeview")
 
         for col in columnas:
             tabla.heading(col, text=col.replace("_", " ").title())
@@ -220,44 +232,91 @@ class MenuProfesor(tk.Toplevel):
 
         scrollbar = ttk.Scrollbar(frame, orient="vertical", command=tabla.yview)
         tabla.configure(yscrollcommand=scrollbar.set)
-
         tabla.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
+
+
+        ttk.Label(filtro_frame, text="Desde:", style="tituloHeader.TLabel").grid(row=0, column=0, padx=5)
+        entry_fecha_inicio = DateEntry(
+            filtro_frame,
+            width=12,
+            date_pattern="dd/mm/yyyy",
+            background="#4a90e2",
+            foreground="white",
+            bordercolor="#4a90e2",
+            headersbackground="#4a90e2",
+            normalbackground="#f0f0f0",
+            weekendbackground="#f0f0f0"
+        )
+        entry_fecha_inicio.grid(row=0, column=1, padx=5)
+
+        ttk.Label(filtro_frame, text="Hasta:", style="tituloHeader.TLabel").grid(row=0, column=2, padx=5)
+        entry_fecha_fin = DateEntry(
+            filtro_frame,
+            width=12,
+            date_pattern="dd/mm/yyyy",
+            background="#4a90e2",
+            foreground="white",
+            bordercolor="#4a90e2",
+            headersbackground="#4a90e2",
+            normalbackground="#f0f0f0",
+            weekendbackground="#f0f0f0"
+        )
+        entry_fecha_fin.grid(row=0, column=3, padx=5)
+
         # Función para cargar datos
-        def buscar():
+        def buscar(fecha_inicio=None, fecha_fin=None):
             tabla.delete(*tabla.get_children())
 
-            inicio = entry_inicio.get()
-            fin = entry_fin.get()
-
-            # Validación adicional
             try:
-                asistencias = obtener_asistencias(self.id_usuario, inicio, fin)
+                asistencias = obtener_asistencias(self.id_usuario)
+
+                if fecha_inicio and fecha_fin:
+                    fecha_inicio_dt = datetime.strptime(fecha_inicio, "%Y-%m-%d")
+                    fecha_fin_dt = datetime.strptime(fecha_fin, "%Y-%m-%d")
+
+                    asistencias = [
+                        fila for fila in asistencias
+                        if fecha_inicio_dt <= datetime.strptime(fila[4][:10], "%Y-%m-%d") <= fecha_fin_dt
+                    ]
 
                 if not asistencias:
-                    print("No se encontraron asistencias")  # Mensaje de depuración
+                    messagebox.showinfo("Información", "No se encontraron registros de asistencia")
                 else:
                     for asist in asistencias:
-                        tabla.insert("", "end", values=asist)
+                        fila_modificada = list(asist)
+                        fila_modificada[4] = fila_modificada[4][:10]
+                        tabla.insert("", "end", values=fila_modificada)
             except Exception as e:
-                print(f"Error al cargar asistencias: {str(e)}")  # Debug
-                # Opcional: mostrar mensaje al usuario
+                messagebox.showerror("Error", f"No se pudieron cargar las asistencias: {str(e)}")
+                print("Error completo:", traceback.format_exc())
 
-        # Botón buscar
-        ttk.Button(filtros_frame, text="Buscar", command=buscar).pack(side="left", padx=10)
+        # Botón para aplicar filtro
+        def aplicar_filtro():
+            fecha_ini = entry_fecha_inicio.get_date().strftime("%Y-%m-%d")
+            fecha_fin = entry_fecha_fin.get_date().strftime("%Y-%m-%d")
+            buscar(fecha_ini, fecha_fin)
+
+        ttk.Button(
+            filtro_frame,
+            text="Filtrar por Fecha",
+            style="botonMenu.TButton",
+            command=aplicar_filtro
+        ).grid(row=0, column=4, padx=10)
 
         # Botón regresar
+        btn_frame = ttk.Frame(frame, style="frameProfesor.TFrame")
+        btn_frame.pack(pady=10)
+
         ttk.Button(
-            frame,
+            btn_frame,
             text="Regresar",
+            style="botonMenu.TButton",
             command=lambda: [ventana.destroy(), self.deiconify()]
-        ).pack(pady=10)
+        ).pack()
 
-        # ✅ Cargar asistencias automáticamente al abrir la ventana
-        buscar()
-
-        # Cerrar ventana
+        buscar()  # Mostrar todas las asistencias al inicio
         ventana.protocol("WM_DELETE_WINDOW", lambda: [ventana.destroy(), self.deiconify()])
 
     def salir(self):

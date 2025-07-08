@@ -31,42 +31,30 @@ def obtener_grupos_asignados(id_usuario):
     return ejecutar_select(query, (id_usuario,))
 
 
-def obtener_asistencias(id_usuario, fecha_inicio=None, fecha_fin=None):
-    """Obtiene las asistencias de los grupos del profesor"""
+def obtener_asistencias(id_usuario):
+    """Obtiene las asistencias del profesor"""
     query = """
     SELECT 
-        cp.nombre_ciclo AS ciclo,
-        cp.modalidad,
-        gpc.nombre_grupo AS grupo,
-        c.nombre_curso AS curso,
+        IFNULL(cp.nombre_ciclo, 'General') AS ciclo,
+        IFNULL(cp.modalidad, 'No especificado') AS modalidad,
+        IFNULL(gpc.nombre_grupo, 'No asignado') AS grupo,
+        IFNULL(c.nombre_curso, 'General') AS curso,
         DATE_FORMAT(a.fecha, '%Y-%m-%d %H:%i:%s') AS fecha,
         a.estado
     FROM 
         usuarios u
         JOIN profesores p ON u.id_usuario = p.id_usuario
         JOIN asistencias a ON p.id_profesor = a.id_profesor
-        JOIN ciclos_cursos cc ON a.id_profesor = cc.id_profesor
-        JOIN ciclos_programados cp ON cc.id_ciclo = cp.id_ciclo
-        JOIN cursos c ON cc.id_curso = c.id_curso
-        JOIN ciclos_cursos_grupos ccg ON cc.id_cc = ccg.id_cc
-        JOIN grupos_por_ciclo gpc ON ccg.id_grupo = gpc.id_grupo
+        LEFT JOIN ciclos_cursos cc ON p.id_profesor = cc.id_profesor
+        LEFT JOIN ciclos_programados cp ON cc.id_ciclo = cp.id_ciclo
+        LEFT JOIN cursos c ON cc.id_curso = c.id_curso
+        LEFT JOIN ciclos_cursos_grupos ccg ON cc.id_cc = ccg.id_cc
+        LEFT JOIN grupos_por_ciclo gpc ON ccg.id_grupo = gpc.id_grupo
     WHERE 
-        u.id_usuario = %s
+        u.id_usuario = 4
+    ORDER BY 
+        a.fecha DESC;
     """
-    params = [id_usuario]
+    print("📥 Ejecutando consulta con ID:", id_usuario)
+    return ejecutar_select(query, (id_usuario,))
 
-    # Verificación más robusta de los parámetros de fecha
-    if fecha_inicio and fecha_fin and fecha_inicio.strip() and fecha_fin.strip():
-        query += " AND a.fecha BETWEEN %s AND %s"
-        params.extend([fecha_inicio.strip(), fecha_fin.strip()])
-    elif (fecha_inicio and fecha_inicio.strip()) or (fecha_fin and fecha_fin.strip()):
-        # Si solo una fecha está completa, no aplicar filtro
-        pass
-
-    query += " ORDER BY a.fecha DESC"
-
-    # Debug: Imprimir consulta y parámetros (opcional, para diagnóstico)
-    print("Consulta SQL:", query)
-    print("Parámetros:", params)
-
-    return ejecutar_select(query, tuple(params)) or []

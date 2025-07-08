@@ -57,117 +57,35 @@ def editar_colaborador(id_colaborador, nombre_usuario, correo, contrasena, estad
 
 
 
-# Logica para los cruds de profesor ======= POR CONSOLA
+# Logica para los cruds de profesor =======
 
-# 1. CREATE: insertar una nuevo profesor
-def crear_profesor(
-    nombre_usuario,
-    correo,
-    contrasena,
-    nombre,
-    ap_paterno,
-    ap_materno,
-    tipo_documento,
-    nro_documento,
-    estado = 1
-):
-    rol = "profesor"
-    try:
-        # 1) Insertar en usuarios
-        sql_user = """
-        INSERT INTO usuarios 
-          (nombre_usuario, correo, contrasenia, estado,rol)
-        VALUES (%s, %s, %s, %s,%s)
-        """
+def crear_profesor(nombre_usuario, correo, contrasenia, nombre, ap_paterno, ap_materno, tipo_documento, nro_documento):
+    lista_parametros = [nombre_usuario, correo, contrasenia, nombre, ap_paterno, ap_materno, tipo_documento,
+                        nro_documento]
+    return ejecutar_procedimiento_con_out("sp_crear_profesor", lista_parametros, 2)
 
-        datos_user = (
-            nombre_usuario,
-            correo,
-            contrasena,
-            estado,
-            rol
-        )
-
-        # Consulta agregada a la BD
-        ejecutar_modificacion(sql_user, datos_user)
-
-        # Obtener el id generado para usuarios
-        id_usuario = ejecutar_select("SELECT id_usuario FROM usuarios WHERE nombre_usuario = %s AND correo = %s AND contrasenia = %s AND rol = %s", (nombre_usuario,correo,contrasena, "profesor"))
-
-        if id_usuario and len(id_usuario) > 0:
-            id_usuario = id_usuario[0][0]  # ✅ AQUÍ: extraes el valor int
-        else:
-            print("❌ No se encontró el usuario recién insertado.")
-            return
-
-        # 2) Insertar en profesores
-        sql_profe = """
-        INSERT INTO profesores
-          (nombre, ap_paterno, ap_materno, tipo_documento, nro_documento, id_usuario)
-        VALUES (%s, %s, %s, %s, %s, %s)
-        """
-        datos_profe = (
-            nombre,
-            ap_paterno,
-            ap_materno,
-            tipo_documento,
-            nro_documento,
-            id_usuario
-        )
-        ejecutar_modificacion(sql_profe, datos_profe)
-
-    except Exception as e:
-        print(f"❌ Error al crear profesor: {e}")
-
-def editar_profesor(id_profesor, nombre, ap_paterno, ap_materno, tipo_documento, nro_documento, nombre_usuario, correo, contrasenia):
-    sql = """UPDATE usuarios u SET u.nombre_usuario = %s, u.correo = %s, u.contrasenia = %s 
-        JOIN profesores p
-        ON u.id_usuario = p.id_usuario 
-    WHERE p.id_profesor = %s"""
-    datos_profe = (nombre_usuario,contrasenia, correo, id_profesor)
-    ejecutar_modificacion(sql, datos_profe)
-
-    sql = """UPDATE profesores SET nombre = %s, ap_paterno = %s, ap_materno = %s, tipo_documento = %s, nro_documento = %s WHERE id_profe = %s"""
-    datos_profe_1 = (nombre,ap_paterno,ap_materno,tipo_documento,nro_documento, id_profesor)
-    ejecutar_modificacion(sql, datos_profe_1)
+def editar_profesor(id_profesor, nombre, ap_paterno, ap_materno, tipo_documento, nro_documento, nombre_usuario, correo, contrasenia, estado):
+    parametros = [id_profesor, nombre, ap_paterno, ap_materno, tipo_documento, nro_documento, nombre_usuario, correo, contrasenia, estado]
+    mensaje = ejecutar_procedimiento_con_out("sp_editar_profesor",parametros, 1)
+    return mensaje or "No se recibio respuesta del procedimiento"
 
 
 
-def ver_profesores():
-    query = "SELECT * FROM profesores"
+def mostrar_profesores():
+    query = (
+        "SELECT a.id_profesor, a.nombre, a.ap_paterno, a.ap_materno, "
+        "a.tipo_documento, a.nro_documento, u.estado, u.nombre_usuario, u.correo, u.contrasenia "
+        "FROM profesores a "
+        "JOIN usuarios u ON u.id_usuario = a.id_usuario;"
+    )
     resultados = ejecutar_select(query)
-    for resultado in resultados:
-        print(f"ID: {resultado[0]}, Nombre: {resultado[1]}, Apellido Pat.: {resultado[2]}, Apellido Mat.: {resultado[3]},Tipo Documento: {resultado[4]}, Numero Documento: {resultado[5]},ID usuario: {resultado[6]}")
-        especialidades = obtener_especialidades(resultado[0])
-        contador = 1
-        print("Especialidades: ")
-        for especialidad in especialidades:
-            print(f"{contador}. {especialidad[0]}")
-            contador = contador + 1
-        print("-----------------------------------")
-def activar_desactivar_cuenta_profesor(id_profesor, opcion_cuenta):
-    resultado = ejecutar_select("SELECT id_usuario FROM profesores WHERE id_profesor = %s", (id_profesor,))
+    return resultados
 
-    if not resultado:
-        print(f"❌ Error: No se encontró ningún profesor con ID {id_profesor}")
-        return  # o puedes lanzar una excepción si prefieres
-
-    id_usuario = resultado[0][0]
-    print(f"id_usuario: {id_usuario} - probando opción")
-
-    if opcion_cuenta == 0:
-        print("🔒 Desactivando cuenta")
-    elif opcion_cuenta == 1:
-        print("✅ Activando cuenta")
-    else:
-        print("⚠️ Opción no existe")
-        return
-
-    query = "UPDATE usuarios SET estado = %s WHERE id_usuario = %s"
-    datos = (opcion_cuenta, id_usuario)
-    print(f"Ejecutando query con datos: {datos}")
-
-    ejecutar_modificacion(query, datos)
+def insertar_especialidades_profesor(id_profesor, lista_nombres):
+    for nombre in lista_nombres:
+        sql = ("INSERT INTO profesores_especialidades (id_profesor, id_especialidad) "
+               "SELECT %s, id_especialidad FROM especialidades WHERE nombre_especialidad = %s")
+        ejecutar_modificacion(sql, (id_profesor, nombre))
 
 def agregar_especialidad_profesor(id_profe, id_usuario):
     sql = """
@@ -189,11 +107,30 @@ def obtener_especialidades(id_profe): # obtener_especialidades de un profesor
     resultados = ejecutar_select(sql, datos_profe)
     return resultados
 
-# Logica para los cruds de administrador ------------------------------------------------------------------
+def obtener_especialidades_profesor(id_profesor):
+    sql = """
+    SELECT e.nombre_especialidad
+    FROM profesores_especialidades pe
+    JOIN especialidades e ON pe.id_especialidad = e.id_especialidad
+    WHERE pe.id_profesor = %s
+    """
+    return ejecutar_select(sql, (id_profesor,))
+
+# Este es la unica parte en donde se usa el DELETE
+def eliminar_especialidades_profesor(id_profesor):
+    sql = "DELETE FROM profesores_especialidades WHERE id_profesor = %s"
+    ejecutar_modificacion(sql, (id_profesor,))
 
 
+def actualizar_especialidades_profesor(id_profesor, nuevas_especialidades):
+    ejecutar_modificacion("DELETE FROM profesores_especialidades WHERE id_profesor = %s", (id_profesor,))
 
-
+    for nombre in nuevas_especialidades:
+        query = """
+            INSERT INTO profesores_especialidades (id_profesor, id_especialidad)
+            SELECT %s, id_especialidad FROM especialidades WHERE nombre_especialidad = %s
+        """
+        ejecutar_modificacion(query, (id_profesor, nombre))
 
 # Logica para los cruds de estudiantes ----------------------------------------------------------------------------------
 

@@ -162,3 +162,8 @@ def actualizar_especialidad(id_especialidad, nombre_especialidad):
     """
     datos = (nombre_especialidad, id_especialidad)
     ejecutar_modificacion(sql, datos)
+
+def mostrar_nombres_especialidades():
+    query = "SELECT nombre_especialidad FROM especialidades"
+    resultados = ejecutar_select(query)
+    return resultados
