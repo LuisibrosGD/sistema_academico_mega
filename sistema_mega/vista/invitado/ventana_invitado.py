@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-from sistema_mega.database.conexion import ejecutar_select
+from sistema_mega.database.conexion_invitado import ejecutar_select
 
 class VentanaInvitado(tk.Toplevel):
     def __init__(self, master):

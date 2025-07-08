@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk, Tk, messagebox
 from sistema_mega.modelo.estudiante_modelo import ver_notas
 from sistema_mega.modelo.estudiante_modelo import ver_perfil
-from sistema_mega.database.conexion import ejecutar_procedimiento
+from sistema_mega.database.conexion_estudiante import ejecutar_procedimiento
 from sistema_mega.modelo.estudiante_modelo import cambiar_contrasenia
 from sistema_mega.vista.login import LoginVentana
 
