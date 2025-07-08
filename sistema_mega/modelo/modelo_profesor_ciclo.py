@@ -1,4 +1,4 @@
-from sistema_mega.database.conexion import ejecutar_select, ejecutar_modificacion
+from sistema_mega.database.conexion import ejecutar_select, ejecutar_modificacion, obtener_conexion
 
 def obtener_profesores():
     """Devuelve una lista de profesores con sus especialidades"""
@@ -40,14 +40,41 @@ def obtener_ciclos_programados():
     ciclos_cursos_sedes = ejecutar_select(query)
     return ciclos_cursos_sedes
 
-def asignar_profesor(id_profesor, id_curso, id_ciclo, hora_inicio, hora_fin, dia):
-    """Asigna un profesor a un curso y ciclo"""
-    query = """
-        INSERT INTO ciclos_cursos (hora_inicio, hora_fin, dia, id_ciclo, id_curso, id_profesor)
-        VALUES (%s, %s, %s, %s, %s, %s)
-    """
-    datos = (hora_inicio, hora_fin, dia,id_ciclo, id_curso, id_profesor)
-    ejecutar_modificacion(query, datos)
+def asignar_profesor(id_profesor, id_curso, id_ciclo, hora_inicio, hora_fin, dia, id_grupo):
+    """Asigna un profesor a un curso y lo vincula a un grupo"""
+
+    id_cc = None
+    try:
+        conexion = obtener_conexion()
+        cursor = conexion.cursor()
+
+        # Paso 1: Insertar en ciclos_cursos y obtener el id_cc generado
+        query1 = """
+                INSERT INTO ciclos_cursos (hora_inicio, hora_fin, dia, id_ciclo, id_curso, id_profesor)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """
+        datos1 = (hora_inicio, hora_fin, dia, id_ciclo, id_curso, id_profesor)
+        cursor.execute(query1, datos1)
+        id_cc = cursor.lastrowid
+        conexion.commit()
+        print("✅ Profesor asignado correctamente al curso")
+    except Exception as e:
+        print(f"❌ Error al asignar profesor: {e}")
+        if conexion:
+            conexion.rollback()
+    finally:
+        if cursor:
+            cursor.close()
+        if conexion:
+            conexion.close()
+
+    # Paso 2: Si se insertó correctamente, ahora insertamos en ciclos_cursos_grupos
+    if id_cc:
+        query2 = "INSERT INTO ciclos_cursos_grupos (id_grupo, id_cc) VALUES (%s, %s)"
+        datos2 = (id_grupo, id_cc)
+        ejecutar_modificacion(query2, datos2)
+    else:
+        print("❌ No se pudo obtener el id_cc, no se pudo vincular al grupo.")
 
 def validar_id_profesor(id_profesor):
     query = "SELECT id_profesor FROM profesores WHERE id_profesor = %s"

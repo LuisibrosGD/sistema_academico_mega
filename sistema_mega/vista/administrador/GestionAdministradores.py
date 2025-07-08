@@ -277,7 +277,7 @@ class CrearAdministrador(tk.Toplevel):
         print("Mensaje devuelto:", mensaje)
         messagebox.showinfo("Resultado", mensaje)
 
-        if "Administrador agregado exitosamente" in mensaje.lower():
+        if "Administrador agregado exitosamente" in mensaje:
             self.ventana.actualizar_tabla()
             self.destroy()
             self.ventana.deiconify()
@@ -430,7 +430,7 @@ class EditarAdministrador(tk.Toplevel):
         messagebox.showinfo("Resultado", mensaje)
 
         # MODIFICACIÓN: Actualizar tabla si la edición fue exitosa
-        if "Administrador actualizado correctamente" in mensaje.lower() or "éxito" in mensaje.lower():
+        if "Administrador actualizado correctamente" in mensaje:
             self.ventana.actualizar_tabla()
             self.destroy()
             self.ventana.deiconify()
